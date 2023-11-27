@@ -1,7 +1,10 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Media;
+using System.Collections.Generic;
+using System.Linq;
 using Visualizer;
 
 namespace WpfPanAndZoom.CustomControls
@@ -20,6 +23,8 @@ namespace WpfPanAndZoom.CustomControls
         private Color _backgroundColor = Color.Parse("#1e1e1e"); // Color.FromArgb(0xFF, 0x33, 0x33, 0x33);
 
         int zoom = 0;
+
+        public bool SnapToGrid { set; get; } = false;
 
         public PanAndZoomCanvas()
         {
@@ -40,12 +45,22 @@ namespace WpfPanAndZoom.CustomControls
             zoom = 0;
 
             Background = new SolidColorBrush(_backgroundColor);
+
+            ResetGridArea();
         }
 
         public int MinX { set; get; }
         public int MinY { set; get; }
         public int MaxX { set; get; }
         public int MaxY { set; get; }
+
+        public void ResetGridArea()
+        {
+            MinX = 0;
+            MinY = 0;
+            MaxX = 4000; //(int)window.Screens.Primary.WorkingArea.Width;
+            MaxY = 2000; //(int)System.Windows.SystemParameters.PrimaryScreenHeight;
+        }
 
         public void RefreshChilds()
         {
@@ -127,6 +142,65 @@ namespace WpfPanAndZoom.CustomControls
                 Vector delta = Vector.Subtract(mousePosition, _initialMousePosition);
                 var translate = new TranslateTransform(delta.X, delta.Y);
                 _transform.Matrix = translate.Value * _transform.Matrix;
+
+                HideOutside();
+            }
+        }
+
+        private void ShowOutside()
+        {
+            foreach (Control child in this.Children)
+            {
+                child.IsVisible = true;
+                child.RenderTransform = _transform;
+            }
+        }
+
+        private void HideOutside()
+        {
+            Point wndStart = Transform3(new(0, 0));
+            Point wndEnd = Transform3(new(MainWindow.MainWnd.Bounds.Width - 0, MainWindow.MainWnd.Bounds.Height - 0));
+
+            foreach (Control child in this.Children)
+            {
+                if (child is ArrowLineNew @new)
+                {
+                    if (zoom < -30)
+                        child.IsVisible = false;
+                    else
+                    {
+                        var arrowB = @new.GetStartEnd();
+                        Point ps = Transform4(arrowB.Item1);
+                        Point pe = Transform4(arrowB.Item2);
+
+                        if (
+                            (ps.X > wndEnd.X) ||
+                            (pe.X < wndStart.X) ||
+                            (ps.Y > wndEnd.Y) ||
+                            (pe.Y < wndStart.Y)
+                            )
+                            child.IsVisible = false;
+                        else
+                            child.IsVisible = true;
+                    }
+                }
+                else
+                {
+                    Point childBounds = Transform4(new(child.Bounds.Width, child.Bounds.Height));
+
+                    if (
+                        (Canvas.GetLeft(child) > wndEnd.X) ||
+                        (Canvas.GetLeft(child) + childBounds.X < wndStart.X) ||
+                        (Canvas.GetTop(child) > wndEnd.Y) ||
+                        (Canvas.GetTop(child) + childBounds.Y < wndStart.Y)
+                        )
+                        child.IsVisible = false;
+                    else
+                        child.IsVisible = true;
+                }
+
+                if (child.IsVisible)
+                    child.RenderTransform = _transform;
             }
         }
 
@@ -163,6 +237,8 @@ namespace WpfPanAndZoom.CustomControls
 
                 //child.RenderTransform = _transform;
             }
+
+            HideOutside();
         }
     }
 }
