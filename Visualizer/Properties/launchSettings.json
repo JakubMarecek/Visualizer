@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DominoVisualizer": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\Users\\jakub\\Desktop\\yr2_trial_02.yr2_trial_02.lua\""
+    }
+  }
+}

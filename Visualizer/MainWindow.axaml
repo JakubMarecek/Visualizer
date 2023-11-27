@@ -1,0 +1,19 @@
+﻿<Window x:Class="Visualizer.MainWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:CustomControlsDV="clr-namespace:Visualizer.CustomControls"
+    xmlns:CustomControls="clr-namespace:WpfPanAndZoom.CustomControls"
+    xmlns:globalData="using:Visualizer"
+    xmlns:sys="using:System"
+    x:CompileBindings="True"
+    xmlns:local="clr-namespace:Visualizer" mc:Ignorable="d" Title="appName" Loaded="Window_Loaded" 
+		WindowStartupLocation="CenterScreen">
+
+	<Grid>
+		<Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+			<CustomControls:PanAndZoomCanvas x:Name="canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True" />
+		</Grid>
+	</Grid>
+</Window>

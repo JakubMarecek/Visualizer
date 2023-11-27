@@ -1,0 +1,109 @@
+﻿<UserControl x:Class="WpfPanAndZoom.CustomControls.Widget"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:WpfPanAndZoom.CustomControls"
+             mc:Ignorable="d" 
+             x:CompileBindings="True"
+             d:DesignHeight="150" d:DesignWidth="200"
+			 RenderTransformOrigin="0,0">
+
+    <UserControl.Styles>
+        
+		<Style Selector="TextBox">
+			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="CaretBrush" Value="Black" />
+			<Setter Property="Foreground" Value="Black" />
+			<Setter Property="SelectionBrush">
+				<Setter.Value>
+					<SolidColorBrush Color="#9c5a1a" />
+				</Setter.Value>
+			</Setter>
+			<Setter Property="VerticalContentAlignment" Value="Center" />
+			<Setter Property="AcceptsReturn" Value="True" />
+			<Setter Property="Cursor" Value="Ibeam"/>
+			<Setter Property="BorderThickness" Value="0" />
+			<Setter Property="Background" Value="Transparent" />
+			<Setter Property="IsReadOnly" Value="True" />
+			<Setter Property="ToolTip.Tip" Value="{Binding Text, RelativeSource={RelativeSource Self}}" />
+			<Setter Property="ToolTip.ShowDelay" Value="100" />
+
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="TextBox">
+						<Grid>
+							<ScrollViewer Margin="0,0,0,0"
+										  Name="PART_ScrollViewer"
+										  AllowAutoHide="{TemplateBinding (ScrollViewer.AllowAutoHide)}"
+										  BringIntoViewOnFocusChange="{TemplateBinding (ScrollViewer.BringIntoViewOnFocusChange)}"
+										  HorizontalScrollBarVisibility="Hidden"
+										  IsScrollChainingEnabled="{TemplateBinding (ScrollViewer.IsScrollChainingEnabled)}"
+										  VerticalScrollBarVisibility="Hidden">
+								<TextPresenter
+									Name="PART_TextPresenter"
+									CaretBrush="{TemplateBinding CaretBrush}"
+									CaretIndex="{TemplateBinding CaretIndex}"
+									LineHeight="{TemplateBinding LineHeight}"
+									LetterSpacing="{TemplateBinding LetterSpacing}"
+									PasswordChar="{TemplateBinding PasswordChar}"
+									RevealPassword="{TemplateBinding RevealPassword}"
+									SelectionBrush="{TemplateBinding SelectionBrush}"
+									SelectionEnd="{TemplateBinding SelectionEnd}"
+									SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+									SelectionStart="{TemplateBinding SelectionStart}"
+									Text="{TemplateBinding Text,Mode=TwoWay}"
+									TextAlignment="{TemplateBinding TextAlignment}"
+									TextWrapping="{TemplateBinding TextWrapping}" />
+							</ScrollViewer>
+						</Grid>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+    </UserControl.Styles>
+
+    <Grid Name="widgetMainGrid">
+<!--         <Border.BorderBrush>
+            <VisualBrush>
+                <VisualBrush.Visual>
+                    <Rectangle x:Name="Border" Stroke="Black" StrokeThickness="2"
+                        Width="{Binding RelativeSource={RelativeSource AncestorType={x:Type Border}}, Path=Bounds.Width}"
+                        Height="{Binding RelativeSource={RelativeSource AncestorType={x:Type Border}}, Path=Bounds.Height}" />
+                </VisualBrush.Visual>
+            </VisualBrush>
+        </Border.BorderBrush> -->
+        <Rectangle x:Name="Border" Stroke="Black" Fill="Black" StrokeThickness="2" RadiusX="5" RadiusY="5" />
+        
+        <Grid Margin="2,2,2,2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="30"/>
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Rectangle x:Name="HeaderRectangle"  Grid.Row="0" Fill="Lime" RadiusX="5" RadiusY="5" />
+            <Grid Grid.Row="0" Name="HeaderGrid">
+                <TextBox x:Name="Header" Text="Widget" HorizontalAlignment="Left" VerticalAlignment="Center" />
+            </Grid>
+            <Rectangle Grid.Row="1" />
+
+            <StackPanel Orientation="Vertical" Name="list" Grid.Row="1" Margin="0,0,0,0">
+                <!--<Border Margin="0,0,0,0" BorderBrush="Black" BorderThickness="1">
+                    <StackPanel Orientation="Vertical" Margin="0,0,0,0">
+                        <Grid Height="30">
+                            <TextBlock Text="Name" Margin="0,0,0,0" FontWeight="Bold" />
+                            <TextBlock Text="Value" Margin="10,13,0,0" />
+                        </Grid>
+                        <Grid Height="30">
+                            <TextBlock Text="Name" Margin="0,0,0,0" FontWeight="Bold" />
+                            <TextBlock Text="Value" Margin="10,13,0,0" />
+                        </Grid>
+                    </StackPanel>
+                </Border>-->
+            </StackPanel>
+            
+            <Rectangle Fill="#882979ff" Grid.RowSpan="2" Name="selected" IsVisible="False" />
+        </Grid>
+    </Grid>
+</UserControl>
