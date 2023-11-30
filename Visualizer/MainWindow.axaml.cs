@@ -44,8 +44,10 @@ namespace Visualizer
                 {
                     var it = g.SelectToken("Data");
 
-                    var id = it.SelectToken("nodeId").SelectToken("id");
+                    var id = it?.SelectToken("nodeId")?.SelectToken("id");
                     Console.WriteLine("" + id);
+
+                    if (id == null) continue;
 
                     List<string> a = new();
 
