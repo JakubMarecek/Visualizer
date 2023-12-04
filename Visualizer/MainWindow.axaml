@@ -8,7 +8,7 @@
     xmlns:globalData="using:Visualizer"
     xmlns:sys="using:System"
     x:CompileBindings="True"
-    xmlns:local="clr-namespace:Visualizer" mc:Ignorable="d" Title="appName" Loaded="Window_Loaded" 
+    xmlns:local="clr-namespace:Visualizer" mc:Ignorable="d" Title="Visualizer" Loaded="Window_Loaded" 
 		WindowStartupLocation="CenterScreen">
 
 	<Grid>

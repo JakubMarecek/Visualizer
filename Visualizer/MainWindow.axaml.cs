@@ -29,11 +29,13 @@ namespace Visualizer
             FilePickerOpenOptions opts = new();
             opts.AllowMultiple = false;
             opts.FileTypeFilter = new FilePickerFileType[] { new("Json") { Patterns = new[] { "*.scene.json" } } };
-            opts.Title = "Select json";
+            opts.Title = "Select scene json";
 
             var d = await StorageProvider.OpenFilePickerAsync(opts);
             if (d != null && d.Count > 0)
             {
+                Title = Path.GetFileName(d[0].Path.LocalPath) + " - " + d[0].Path.LocalPath;
+
                 var text = File.ReadAllText(d[0].Path.LocalPath);
                 var jsonData = (JObject)JsonConvert.DeserializeObject(text);
 
