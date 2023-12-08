@@ -257,17 +257,17 @@ namespace Visualizer
             linesColors.Add(Color.Parse("#ff6f00")); // amber
             linesColors.Add(Color.Parse("#e65100")); // orange
             linesColors.Add(Color.Parse("#bf360c")); // deep orange
-            linesColors.Add(Color.Parse("#3e2723")); // brown
-            linesColors.Add(Color.Parse("#212121")); // grey
-            linesColors.Add(Color.Parse("#263238")); // blue grey
+            //linesColors.Add(Color.Parse("#3e2723")); // brown
+            //linesColors.Add(Color.Parse("#212121")); // grey
+            //linesColors.Add(Color.Parse("#263238")); // blue grey
 
-            var a = typeof(Colors).GetProperties(BindingFlags.Static | BindingFlags.DeclaredOnly | BindingFlags.Public)
+            /*var a = typeof(Colors).GetProperties(BindingFlags.Static | BindingFlags.DeclaredOnly | BindingFlags.Public)
                                 .Select(c => (Color)c.GetValue(null, null))
                                 .ToList();
 
             foreach (var c in a)
                 if (!linesColors.Contains(c))
-                    linesColors.Add(c);
+                    linesColors.Add(c);*/
         }
     }
 
