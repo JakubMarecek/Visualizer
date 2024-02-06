@@ -71,7 +71,25 @@ namespace Visualizer
 
                     var questNode = it.SelectToken("questNode");
                     if (questNode != null)
-                        b.Add(questNode.SelectToken("Data").SelectToken("$type").ToString());
+                    {
+                        var type = questNode.SelectToken("Data").SelectToken("$type").ToString();
+                        b.Add(type);
+
+                        if (type == "questPauseConditionNodeDefinition")
+                        {
+                            var condChild = questNode.SelectToken("Data")?.SelectToken("condition")?.SelectToken("Data")?.SelectToken("type")?.SelectToken("Data");
+                            if (condChild != null && condChild?.SelectToken("$type")?.ToString() == "questRealtimeDelay_ConditionType")
+                                b.Add(
+                                    "    Hours: " + condChild.SelectToken("hours").ToString() + "\n    Minutes: " + condChild.SelectToken("minutes").ToString() + "\n" + 
+                                    "    Seconds: " + condChild.SelectToken("seconds").ToString() + "\n    Miliseconds: " + condChild.SelectToken("miliseconds").ToString()
+                                );
+                        }
+
+                        if (type == "questRenderFxManagerNodeDefinition" || type == "questUIManagerNodeDefinition")
+                        {
+                            b.Add("    FX: " + questNode.SelectToken("Data").SelectToken("type").SelectToken("Data").SelectToken("$type").ToString());
+                        }
+                    }
 
                     var events = it.SelectToken("events");
                     if (events != null)
@@ -79,6 +97,10 @@ namespace Visualizer
                         {
                             b.Add(ev.SelectToken("Data").SelectToken("$type").ToString());
                         }
+
+                    var duration = it.SelectToken("sectionDuration");
+                    if (duration != null)
+                        b.Add("    Duration: " + duration.SelectToken("stu").ToString());
 
                     Items.Add(id.ToString(), new() { Dests = a, Draw = false, Name = it.SelectToken("$type").ToString(), Params = b });
                 }
