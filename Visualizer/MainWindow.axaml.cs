@@ -115,11 +115,13 @@ namespace Visualizer
 
 					var events = it.SelectToken("events");
 					if (events != null)
+					{
+						int index = 0;
 						foreach (var ev in events)
 						{
 							var type = ev.SelectToken("Data").SelectToken("$type").ToString();
 
-							string strToDisplay = ev.SelectToken("Data").SelectToken("startTime").ToString() + " -> " + type;
+							string strToDisplay = $"#{index} - " + ev.SelectToken("Data").SelectToken("startTime").ToString() + " -> " + type;
 
 							if (type == "scneventsSocket")
 							{
@@ -134,7 +136,9 @@ namespace Visualizer
 							}
 
 							b.Add(strToDisplay);
+							index++;
 						}
+					}
 
 					var duration = it.SelectToken("sectionDuration");
 					if (duration != null)
