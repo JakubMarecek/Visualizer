@@ -165,7 +165,7 @@ namespace WpfPanAndZoom.CustomControls
             {
                 if (child is ArrowLineNew @new)
                 {
-                    if (zoom < -30)
+                    if (zoom < -60)
                         child.IsVisible = false;
                     else
                     {

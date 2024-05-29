@@ -41,18 +41,27 @@ namespace Visualizer
 
 				var text = File.ReadAllText(d[0].Path.LocalPath);
 				var jsonData = (JObject)JsonConvert.DeserializeObject(text);
+				
+				Dictionary<int, string> NotablePoints = new();
+				var jsonNotable = jsonData.SelectTokens("Data.RootChunk.notablePoints.[*]");
+				foreach (var ntb in jsonNotable)
+				{
+					NotablePoints.Add(ntb.SelectToken("nodeId.id").ToObject<int>(), ntb.SelectToken("name.$value").ToString());
+				}
 
 				Dictionary<string, Item> Items = new();
 
-				var graph = jsonData.SelectToken("Data").SelectToken("RootChunk").SelectToken("sceneGraph").SelectToken("Data").SelectToken("graph");
+				var graph = jsonData.SelectToken("Data.RootChunk.sceneGraph.Data.graph");
 				foreach (var g in graph)
 				{
 					var it = g.SelectToken("Data");
 
-					var id = it?.SelectToken("nodeId")?.SelectToken("id");
-					Console.WriteLine("" + id);
+					var idObj = it?.SelectToken("nodeId")?.SelectToken("id");
+					Console.WriteLine("" + idObj);
 
-					if (id == null) continue;
+					if (idObj == null) continue;
+
+					int id = int.Parse(idObj.ToString());
 
 					List<ItemOutput> itemOuts = new();
 					List<string> mappings = new();
@@ -66,7 +75,7 @@ namespace Visualizer
 							var dsts = sck.SelectToken("destinations");
 							foreach (var dst in dsts)
 							{
-								var destId = dst.SelectToken("nodeId").SelectToken("id");
+								var destId = dst.SelectToken("nodeId.id");
 								Console.WriteLine("-" + destId);
 
 								a.Add(destId.ToString());
@@ -74,7 +83,7 @@ namespace Visualizer
 
 							itemOuts.Add(new()
 							{
-								OutParams = "name: " + sck.SelectToken("stamp").SelectToken("name").ToString() + ", ordinal: " + sck.SelectToken("stamp").SelectToken("ordinal").ToString(),
+								OutParams = "name: " + sck.SelectToken("stamp.name").ToString() + ", ordinal: " + sck.SelectToken("stamp.ordinal").ToString(),
 								OutDests = a
 							});
 						}
@@ -91,26 +100,32 @@ namespace Visualizer
 					var questNode = it.SelectToken("questNode");
 					if (questNode != null)
 					{
-						var type = questNode.SelectToken("Data").SelectToken("$type").ToString();
+						var type = questNode.SelectToken("Data.$type").ToString();
 						b.Add(type);
+
+						var ts = questNode.SelectToken("Data.type.Data.$type");
+						if (ts != null)
+						{
+							b.Add("    Type: " + ts.ToString());
+						}
 
 						if (type == "questConditionNodeDefinition" || type == "questPauseConditionNodeDefinition")
 						{
-							var condChild = questNode.SelectToken("Data")?.SelectToken("condition")?.SelectToken("Data")?.SelectToken("type")?.SelectToken("Data");
-							b.Add("    Type: " + questNode.SelectToken("Data")?.SelectToken("condition")?.SelectToken("Data")?.SelectToken("$type"));
+							var condChild = questNode.SelectToken("Data.condition.Data.type.Data");
+							b.Add("    CondType: " + questNode.SelectToken("Data.condition.Data.$type"));
 
 							if (condChild != null && condChild?.SelectToken("$type")?.ToString() == "questRealtimeDelay_ConditionType")
 								b.Add(
 									"    Hours: " + condChild.SelectToken("hours").ToString() + "\n    Minutes: " + condChild.SelectToken("minutes").ToString() + "\n" +
 									"    Seconds: " + condChild.SelectToken("seconds").ToString() + "\n    Miliseconds: " + condChild.SelectToken("miliseconds").ToString()
 								);
+								
+							if (condChild != null && condChild?.SelectToken("$type")?.ToString() == "questVarComparison_ConditionType")
+								b.Add("    " + condChild.SelectToken("factName").ToString() + " - " + condChild.SelectToken("comparisonType").ToString() + " - " + condChild.SelectToken("value").ToString());
 						}
 
-						if (type == "questRenderFxManagerNodeDefinition" || type == "questUIManagerNodeDefinition" || type == "questSceneManagerNodeDefinition" ||
-							type == "questCharacterManagerNodeDefinition")
-						{
-							b.Add("    Type: " + questNode.SelectToken("Data").SelectToken("type").SelectToken("Data").SelectToken("$type").ToString());
-						}
+						if (type == "questFactsDBManagerNodeDefinition")
+							b.Add("    " + questNode.SelectToken("Data.type.Data.factName").ToString() + " - Exact: " + questNode.SelectToken("Data.type.Data.setExactValue").ToString() + " - Value: " + questNode.SelectToken("Data.type.Data.value").ToString());
 					}
 
 					var events = it.SelectToken("events");
@@ -119,20 +134,20 @@ namespace Visualizer
 						int index = 0;
 						foreach (var ev in events)
 						{
-							var type = ev.SelectToken("Data").SelectToken("$type").ToString();
+							var type = ev.SelectToken("Data.$type").ToString();
 
-							string strToDisplay = $"#{index} - " + ev.SelectToken("Data").SelectToken("startTime").ToString() + " -> " + type;
+							string strToDisplay = $"#{index} - " + ev.SelectToken("Data.startTime").ToString() + " -> " + type;
 
 							if (type == "scneventsSocket")
 							{
-								strToDisplay += ", name: " + ev.SelectToken("Data").SelectToken("osockStamp").SelectToken("name").ToString() +
-									", ordinal: " + ev.SelectToken("Data").SelectToken("osockStamp").SelectToken("ordinal").ToString();
+								strToDisplay += ", name: " + ev.SelectToken("Data.osockStamp.name").ToString() +
+									", ordinal: " + ev.SelectToken("Data.osockStamp.ordinal").ToString();
 							}
 
 							if (type == "scneventsVFXEvent")
 							{
-								var eff = ev.SelectToken("Data").SelectToken("effectEntry")?.SelectToken("effectName")?.SelectToken("$value")?.ToString();
-								strToDisplay += ", action: " + ev.SelectToken("Data").SelectToken("action").ToString() + (eff != null ? ", effect: " + eff : "");
+								var eff = ev.SelectToken("Data.effectEntry.effectName.$value")?.ToString();
+								strToDisplay += ", action: " + ev.SelectToken("Data.action").ToString() + (eff != null ? ", effect: " + eff : "");
 							}
 
 							b.Add(strToDisplay);
@@ -144,7 +159,9 @@ namespace Visualizer
 					if (duration != null)
 						b.Add("    Duration: " + duration.SelectToken("stu").ToString());
 
-					Items.Add(id.ToString(), new() { Outputs = itemOuts, Draw = false, Name = it.SelectToken("$type").ToString(), Params = b, OutMappings = mappings });
+					var ntbName = "";
+					if (NotablePoints.ContainsKey(id)) ntbName = " - " + NotablePoints[id];
+					Items.Add(id.ToString(), new() { Outputs = itemOuts, Draw = false, Name = it.SelectToken("$type").ToString() + ntbName, Params = b, OutMappings = mappings });
 				}
 
 				int x = 0;
@@ -152,8 +169,10 @@ namespace Visualizer
 
 				List<string> ItemsDraw = new();
 
-				void dr(string id, Item item, int xs = 0)
+				int dr(string id, Item item, int xs = 0)
 				{
+					int thisH = 0;
+					
 					if (!item.Draw)
 					{
 						var w = new Widget();
@@ -178,17 +197,38 @@ namespace Visualizer
 						ItemsDraw.Add(id);
 
 						y += 100;
+						thisH = 100;
 
+						int childH = 0;
 						foreach (var sub in item.Outputs)
 						{
 							foreach (var sub2 in sub.OutDests)
 							{
 								var p = Items[sub2];
 
-								dr(sub2, p, xs + boxWidth + space);
+								childH += dr(sub2, p, xs + boxWidth + space);
 							}
 						}
+
+						thisH += childH;
+						
+						var tmp = 0;
+						for (int i = 0; i < item.Outputs.Count; i++)
+						{
+							tmp += 17;
+							thisH += 17;
+						}
+						foreach (var p in item.Params)
+						{
+							tmp += 17;
+							thisH += 17;
+						}
+
+						if (childH < tmp + 100)
+							y = y - childH + tmp;
 					}
+
+					return thisH;
 				}
 
 				var entryPoints = jsonData.SelectToken("Data").SelectToken("RootChunk").SelectToken("entryPoints");
