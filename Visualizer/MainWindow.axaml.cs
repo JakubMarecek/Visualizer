@@ -45,6 +45,43 @@ namespace Visualizer
 
 				Dictionary<string, Item> Items = new();
 
+				List<string> getNodeParams(JToken questNode)
+				{
+					List<string> b = new();
+
+					if (questNode != null)
+					{
+						var type = questNode.SelectToken("Data.$type").ToString();
+						b.Add(type);
+
+						var ts = questNode.SelectToken("Data.type.Data.$type");
+						if (ts != null)
+						{
+							b.Add("    Type: " + ts.ToString());
+						}
+
+						if (type == "questConditionNodeDefinition" || type == "questPauseConditionNodeDefinition")
+						{
+							var condChild = questNode.SelectToken("Data.condition.Data.type.Data");
+							b.Add("    CondType: " + questNode.SelectToken("Data.condition.Data.$type"));
+
+							if (condChild != null && condChild?.SelectToken("$type")?.ToString() == "questRealtimeDelay_ConditionType")
+								b.Add(
+									"    Hours: " + condChild.SelectToken("hours").ToString() + "\n    Minutes: " + condChild.SelectToken("minutes").ToString() + "\n" +
+									"    Seconds: " + condChild.SelectToken("seconds").ToString() + "\n    Miliseconds: " + condChild.SelectToken("miliseconds").ToString()
+								);
+
+							if (condChild != null && condChild?.SelectToken("$type")?.ToString() == "questVarComparison_ConditionType")
+								b.Add("    " + condChild.SelectToken("factName").ToString() + " - " + condChild.SelectToken("comparisonType").ToString() + " - " + condChild.SelectToken("value").ToString());
+						}
+
+						if (type == "questFactsDBManagerNodeDefinition")
+							b.Add("    " + questNode.SelectToken("Data.type.Data.factName").ToString() + " - Exact: " + questNode.SelectToken("Data.type.Data.setExactValue").ToString() + " - Value: " + questNode.SelectToken("Data.type.Data.value").ToString());
+					}
+
+					return b;
+				}
+
 				if (fileName.EndsWith(".scene.json"))
 				{
 					Dictionary<int, string> NotablePoints = new();
@@ -67,13 +104,13 @@ namespace Visualizer
 						int id = int.Parse(idObj.ToString());
 
 						List<ItemOutput> itemOuts = new();
-						List<string> mappings = new();
 
+						var outScksMapp = it.SelectToken("osockMappings");
 						var outScks = it.SelectToken("outputSockets");
 						if (outScks != null)
 							foreach (var sck in outScks)
 							{
-								List<string> a = new();
+								Dictionary<string, string> a = new();
 
 								var dsts = sck.SelectToken("destinations");
 								foreach (var dst in dsts)
@@ -81,55 +118,17 @@ namespace Visualizer
 									var destId = dst.SelectToken("nodeId.id");
 									Console.WriteLine("-" + destId);
 
-									a.Add(destId.ToString());
+									a.Add(destId.ToString(), dst.SelectToken("isockStamp.ordinal").ToString());
 								}
 
 								itemOuts.Add(new()
 								{
-									OutParams = "name: " + sck.SelectToken("stamp.name").ToString() + ", ordinal: " + sck.SelectToken("stamp.ordinal").ToString(),
+									OutParams = (outScksMapp != null ? (outScksMapp[itemOuts.Count].SelectToken("$value").ToString() + " -> ") : "") + "name: " + sck.SelectToken("stamp.name").ToString() + ", ordinal: " + sck.SelectToken("stamp.ordinal").ToString(),
 									OutDests = a
 								});
 							}
 
-						var outScksMapp = it.SelectToken("osockMappings");
-						if (outScksMapp != null)
-							foreach (var sck in outScksMapp)
-							{
-								mappings.Add(sck.SelectToken("$value").ToString() + " -> ");
-							}
-
-						List<string> b = new();
-
-						var questNode = it.SelectToken("questNode");
-						if (questNode != null)
-						{
-							var type = questNode.SelectToken("Data.$type").ToString();
-							b.Add(type);
-
-							var ts = questNode.SelectToken("Data.type.Data.$type");
-							if (ts != null)
-							{
-								b.Add("    Type: " + ts.ToString());
-							}
-
-							if (type == "questConditionNodeDefinition" || type == "questPauseConditionNodeDefinition")
-							{
-								var condChild = questNode.SelectToken("Data.condition.Data.type.Data");
-								b.Add("    CondType: " + questNode.SelectToken("Data.condition.Data.$type"));
-
-								if (condChild != null && condChild?.SelectToken("$type")?.ToString() == "questRealtimeDelay_ConditionType")
-									b.Add(
-										"    Hours: " + condChild.SelectToken("hours").ToString() + "\n    Minutes: " + condChild.SelectToken("minutes").ToString() + "\n" +
-										"    Seconds: " + condChild.SelectToken("seconds").ToString() + "\n    Miliseconds: " + condChild.SelectToken("miliseconds").ToString()
-									);
-
-								if (condChild != null && condChild?.SelectToken("$type")?.ToString() == "questVarComparison_ConditionType")
-									b.Add("    " + condChild.SelectToken("factName").ToString() + " - " + condChild.SelectToken("comparisonType").ToString() + " - " + condChild.SelectToken("value").ToString());
-							}
-
-							if (type == "questFactsDBManagerNodeDefinition")
-								b.Add("    " + questNode.SelectToken("Data.type.Data.factName").ToString() + " - Exact: " + questNode.SelectToken("Data.type.Data.setExactValue").ToString() + " - Value: " + questNode.SelectToken("Data.type.Data.value").ToString());
-						}
+						List<string> b = getNodeParams(it.SelectToken("questNode"));
 
 						var events = it.SelectToken("events");
 						if (events != null)
@@ -164,7 +163,26 @@ namespace Visualizer
 
 						var ntbName = "";
 						if (NotablePoints.ContainsKey(id)) ntbName = " - " + NotablePoints[id];
-						Items.Add(id.ToString(), new() { Outputs = itemOuts, Draw = false, Name = it.SelectToken("$type").ToString() + ntbName, Params = b, OutMappings = mappings });
+
+						var inScksMapp = it.SelectToken("isockMappings");
+						List<ItemInput> itemInps = new();
+						if (inScksMapp != null)
+							foreach (var inSck in inScksMapp)
+							{
+								itemInps.Add(new()
+								{
+									InParams = inSck.SelectToken("$value").ToString(),
+									Ins = itemInps.Count.ToString()
+								});
+							}
+						else
+							itemInps.Add(new()
+							{
+								InParams = "In",
+								Ins = itemInps.Count.ToString()
+							});
+
+						Items.Add(id.ToString(), new() { Outputs = itemOuts, Inputs = itemInps, Draw = false, Name = it.SelectToken("$type").ToString() + ntbName, Params = b });
 					}
 				}
 				if (fileName.EndsWith(".questphase.json"))
@@ -175,19 +193,19 @@ namespace Visualizer
 					{
 						foreach (var fsG in graph)
 						{
-							var fsSockets = fsG.SelectToken("Data").SelectToken("sockets");
+							var fsSockets = fsG.SelectToken("Data.sockets");
 							foreach (var fsSocket in fsSockets)
 							{
 								var fsSocketHandleID = fsSocket.SelectToken("HandleId")?.ToString();
 								if (fsSocketHandleID == handleID)
 								{
-									return fsG.SelectToken("Data").SelectToken("id").ToString();
+									return fsG.SelectToken("Data.id").ToString();
 								}
 
 								var fsSocketHandleRefID = fsSocket.SelectToken("HandleRefId")?.ToString();
 								if (fsSocketHandleRefID == handleID)
 								{
-									return fsG.SelectToken("Data").SelectToken("id").ToString();
+									return fsG.SelectToken("Data.id").ToString();
 								}
 							}
 						}
@@ -195,7 +213,30 @@ namespace Visualizer
 						return "";
 					}
 
-					Dictionary<string, List<string>> nodesConns = [];
+					Dictionary<string, string> nodesSckNames = [];
+					string findParentSocketName(JToken jToken, string srcHandleID)
+					{
+						var socketsDefs = (graph as JArray).Descendants().Where(a => a.SelectToken("Data.$type")?.ToString() == "questSocketDefinition");
+						foreach (var socketsDef in socketsDefs)
+						{
+							var handleID = socketsDef.SelectToken("HandleId").ToString();
+							if (handleID == srcHandleID)
+							{
+								var sckName = socketsDef.SelectToken("Data.name.$value").ToString();
+								var sckType = socketsDef.SelectToken("Data.type").ToString();
+
+								if (!nodesSckNames.ContainsKey(handleID))
+									nodesSckNames.Add(handleID, "(" + handleID + ") " + sckName); // + sckType + ": "
+
+								return handleID;
+							}
+						}
+
+						return "";
+					}
+
+					Dictionary<string, Dictionary<string, Dictionary<string, string>>> nodesConns = [];
+					Dictionary<string, List<string>> nodesDstConns = [];
 
 					var connDefs = (graph as JArray).Descendants().Where(a => a.SelectToken("Data.$type")?.ToString() == "graphGraphConnectionDefinition");
 					foreach (var connDef in connDefs)
@@ -218,14 +259,29 @@ namespace Visualizer
 
 						if (destNode != "" && srcNode != "")
 						{
-							if (!nodesConns.TryGetValue(srcNode, out List<string> value))
+							var srcSckHandleID = findParentSocketName(connDef, src);
+							var dstSckHandleID = findParentSocketName(connDef, dest);
+
+							if (!nodesConns.TryGetValue(srcNode, out Dictionary<string, Dictionary<string, string>> value))
 							{
-								nodesConns.Add(srcNode, [destNode]);
+								nodesConns.Add(srcNode, new() { { srcSckHandleID, new() { { destNode, dstSckHandleID } } } });
 							}
 							else
 							{
-								value.Add(destNode);
+								if (!value.TryGetValue(srcSckHandleID, out Dictionary<string, string> value2))
+								{
+									value.Add(srcSckHandleID, new() { { destNode, dstSckHandleID } });
+								}
+								else
+								{
+									value2.Add(destNode, dstSckHandleID);
+								}
 							}
+
+							if (!nodesDstConns.TryGetValue(destNode, out List<string> value3))
+								nodesDstConns.Add(destNode, [dstSckHandleID]);
+							else if (!value3.Contains(dstSckHandleID))
+								value3.Add(dstSckHandleID);
 						}
 
 						Console.WriteLine("Nodes: " + srcNode + " > " + destNode + ", Handles: " + src + " > " + dest);
@@ -241,31 +297,39 @@ namespace Visualizer
 
 						int id = int.Parse(idObj.ToString());
 
-
-
 						List<ItemOutput> itemOuts = new();
-						List<string> mappings = new();
-						List<string> b = new();
+						List<ItemInput> itemInps = new();
+						List<string> b = getNodeParams(g);
 
-
-
-						List<string> a = [];
 						if (nodesConns.ContainsKey(idObj.ToString()))
-							a.AddRange(nodesConns[idObj.ToString()]);
-
-						itemOuts.Add(new()
 						{
-							OutParams = "name: ",
-							OutDests = a
-						});
+							var nodesConn = nodesConns[idObj.ToString()];
+							foreach (var connSck in nodesConn)
+							{
+								itemOuts.Add(new()
+								{
+									OutParams = nodesSckNames[connSck.Key],
+									OutDests = connSck.Value
+								});
+							}
+						}
 
-						mappings.Add("");
+						foreach (var nodesDstConn in nodesDstConns)
+						{
+							if (nodesDstConn.Key == idObj.ToString())
+							{
+								foreach (var sckHandleID in nodesDstConn.Value)
+								{
+									itemInps.Add(new()
+									{
+										InParams = nodesSckNames[sckHandleID],
+										Ins = sckHandleID
+									});
+								}
+							}
+						}
 
-
-
-
-
-						Items.Add(id.ToString(), new() { Outputs = itemOuts, Draw = false, Name = it.SelectToken("$type").ToString(), Params = b, OutMappings = mappings });
+						Items.Add(id.ToString(), new() { Outputs = itemOuts, Inputs = itemInps, Draw = false, Name = it.SelectToken("$type").ToString(), Params = b });
 					}
 				}
 
@@ -289,8 +353,11 @@ namespace Visualizer
 						Canvas.SetLeft(w, xs);
 						Canvas.SetTop(w, y);
 
+						for (int i = 0; i < item.Inputs.Count; i++)
+							w.list.Children.Add(new TextBlock() { Text = item.Inputs[i].InParams, Background = Brushes.DarkOrange, Foreground = Brushes.Black });
+
 						for (int i = 0; i < item.Outputs.Count; i++)
-							w.list.Children.Add(new TextBlock() { Text = (item.OutMappings.ElementAtOrDefault(i)) + item.Outputs[i].OutParams, Background = Brushes.DarkRed });
+							w.list.Children.Add(new TextBlock() { Text = item.Outputs[i].OutParams, Background = Brushes.DarkRed });
 
 						foreach (var p in item.Params)
 							w.list.Children.Add(new TextBlock() { Text = p });
@@ -309,9 +376,9 @@ namespace Visualizer
 						{
 							foreach (var sub2 in sub.OutDests)
 							{
-								var p = Items[sub2];
+								var p = Items[sub2.Key];
 
-								childH += dr(sub2, p, xs + boxWidth + space);
+								childH += dr(sub2.Key, p, xs + boxWidth + space);
 							}
 						}
 
@@ -373,7 +440,34 @@ namespace Visualizer
 						{
 							foreach (var sub in item.Value.Outputs[i].OutDests)
 							{
-								var p = Items[sub];
+								var p = Items[sub.Key];
+								if (p.Draw)
+								{
+									for (int j = 0; j < p.Inputs.Count; j++)
+									{
+										if (sub.Value == p.Inputs[j].Ins)
+										{
+											ArrowLineNew l = new()
+											{
+												StrokeThickness = 2,
+												Stroke = new SolidColorBrush(linesColors[selClr]),
+												X1 = item.Value.X + boxWidth,
+												Y1 = item.Value.Y + 40 + (16 * i) + (item.Value.Inputs.Count * 16),
+												X2 = p.X,
+												Y2 = p.Y + 40 + (j * 16)
+											};
+											l.MakeBezierAlt = true;
+											l.MakePoly = false;
+											canvas.Children.Add(l);
+
+											selClr++;
+											if (selClr >= linesColors.Count)
+												selClr = 0;
+										}
+									}
+								}
+
+								/*var p = Items[sub];
 								if (p.Draw)
 								{
 									ArrowLineNew l = new()
@@ -392,7 +486,7 @@ namespace Visualizer
 									selClr++;
 									if (selClr >= linesColors.Count)
 										selClr = 0;
-								}
+								}*/
 							}
 						}
 				}
@@ -517,15 +611,22 @@ namespace Visualizer
 
 		public List<ItemOutput> Outputs = new();
 
-		public List<string> Params = new();
+		public List<ItemInput> Inputs = new();
 
-		public List<string> OutMappings = new();
+		public List<string> Params = new();
 	}
 
 	class ItemOutput
 	{
 		public string OutParams { get; set; }
 
-		public List<string> OutDests { get; set; }
+		public Dictionary<string, string> OutDests { get; set; }
+	}
+
+	class ItemInput
+	{
+		public string InParams { get; set; }
+
+		public string Ins { get; set; }
 	}
 }
