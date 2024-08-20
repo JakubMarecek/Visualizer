@@ -118,7 +118,8 @@ namespace Visualizer
 									var destId = dst.SelectToken("nodeId.id");
 									Console.WriteLine("-" + destId);
 
-									a.Add(destId.ToString(), dst.SelectToken("isockStamp.ordinal").ToString());
+									if (!a.ContainsKey(destId.ToString()))
+										a.Add(destId.ToString(), dst.SelectToken("isockStamp.ordinal").ToString());
 								}
 
 								itemOuts.Add(new()
