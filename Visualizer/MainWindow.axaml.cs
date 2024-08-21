@@ -110,7 +110,7 @@ namespace Visualizer
 						if (outScks != null)
 							foreach (var sck in outScks)
 							{
-								Dictionary<string, string> a = new();
+								Dictionary<string, ItemOutputStamp> a = new();
 
 								var dsts = sck.SelectToken("destinations");
 								foreach (var dst in dsts)
@@ -119,7 +119,7 @@ namespace Visualizer
 									Console.WriteLine("-" + destId);
 
 									if (!a.ContainsKey(destId.ToString()))
-										a.Add(destId.ToString(), dst.SelectToken("isockStamp.ordinal").ToString());
+										a.Add(destId.ToString(), new() { Name = dst.SelectToken("isockStamp.name").ToString(), Ordinal = dst.SelectToken("isockStamp.ordinal").ToString() } );
 								}
 
 								itemOuts.Add(new()
@@ -177,11 +177,18 @@ namespace Visualizer
 								});
 							}
 						else
+						{
 							itemInps.Add(new()
 							{
 								InParams = "In",
-								Ins = itemInps.Count.ToString()
+								Ins = "gen_in"
 							});
+							itemInps.Add(new()
+							{
+								InParams = "CutDestination",
+								Ins = "gen_cut"
+							});
+						}
 
 						Items.Add(id.ToString(), new() { Outputs = itemOuts, Inputs = itemInps, Draw = false, Name = it.SelectToken("$type").ToString() + ntbName, Params = b });
 					}
@@ -236,7 +243,7 @@ namespace Visualizer
 						return "";
 					}
 
-					Dictionary<string, Dictionary<string, Dictionary<string, string>>> nodesConns = [];
+					Dictionary<string, Dictionary<string, Dictionary<string, ItemOutputStamp>>> nodesConns = [];
 					Dictionary<string, List<string>> nodesDstConns = [];
 
 					var connDefs = (graph as JArray).Descendants().Where(a => a.SelectToken("Data.$type")?.ToString() == "graphGraphConnectionDefinition");
@@ -263,19 +270,19 @@ namespace Visualizer
 							var srcSckHandleID = findParentSocketName(connDef, src);
 							var dstSckHandleID = findParentSocketName(connDef, dest);
 
-							if (!nodesConns.TryGetValue(srcNode, out Dictionary<string, Dictionary<string, string>> value))
+							if (!nodesConns.TryGetValue(srcNode, out Dictionary<string, Dictionary<string, ItemOutputStamp>> value))
 							{
-								nodesConns.Add(srcNode, new() { { srcSckHandleID, new() { { destNode, dstSckHandleID } } } });
+								nodesConns.Add(srcNode, new() { { srcSckHandleID, new() { { destNode, new() { Name = dstSckHandleID } } } } });
 							}
 							else
 							{
-								if (!value.TryGetValue(srcSckHandleID, out Dictionary<string, string> value2))
+								if (!value.TryGetValue(srcSckHandleID, out Dictionary<string, ItemOutputStamp> value2))
 								{
-									value.Add(srcSckHandleID, new() { { destNode, dstSckHandleID } });
+									value.Add(srcSckHandleID, new() { { destNode, new() { Name = dstSckHandleID } } });
 								}
 								else
 								{
-									value2.Add(destNode, dstSckHandleID);
+									value2.Add(destNode, new() { Name = dstSckHandleID });
 								}
 							}
 
@@ -446,7 +453,7 @@ namespace Visualizer
 								{
 									for (int j = 0; j < p.Inputs.Count; j++)
 									{
-										if (sub.Value == p.Inputs[j].Ins)
+										if (sub.Value.Ordinal == p.Inputs[j].Ins || (sub.Value.Name == "0" && p.Inputs[j].Ins == "gen_in") || (sub.Value.Name == "1" && p.Inputs[j].Ins == "gen_cut"))
 										{
 											ArrowLineNew l = new()
 											{
@@ -621,7 +628,14 @@ namespace Visualizer
 	{
 		public string OutParams { get; set; }
 
-		public Dictionary<string, string> OutDests { get; set; }
+		public Dictionary<string, ItemOutputStamp> OutDests { get; set; }
+	}
+
+	class ItemOutputStamp
+	{
+		public string Name { get; set; }
+		
+		public string Ordinal { get; set; }
 	}
 
 	class ItemInput
