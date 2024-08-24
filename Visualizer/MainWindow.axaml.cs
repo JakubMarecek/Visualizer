@@ -37,6 +37,8 @@ namespace Visualizer
 			var d = await StorageProvider.OpenFilePickerAsync(opts);
 			if (d != null && d.Count > 0)
 			{
+				bool isQuest = false;
+
 				var fileName = d[0].Path.LocalPath;
 				Title = Path.GetFileName(fileName) + " - " + fileName;
 
@@ -195,6 +197,8 @@ namespace Visualizer
 				}
 				if (fileName.EndsWith(".questphase.json"))
 				{
+					isQuest = true;
+					
 					var graph = jsonData.SelectToken("Data.RootChunk.graph.Data.nodes");
 
 					string findSocket(string handleID)
@@ -365,10 +369,10 @@ namespace Visualizer
 							w.list.Children.Add(new TextBlock() { Text = item.Inputs[i].InParams, Background = Brushes.DarkOrange, Foreground = Brushes.Black });
 
 						for (int i = 0; i < item.Outputs.Count; i++)
-							w.list.Children.Add(new TextBlock() { Text = item.Outputs[i].OutParams, Background = Brushes.DarkRed });
+							w.list.Children.Add(new TextBlock() { Text = item.Outputs[i].OutParams, Background = Brushes.DarkRed, Foreground = Brushes.White });
 
 						foreach (var p in item.Params)
-							w.list.Children.Add(new TextBlock() { Text = p });
+							w.list.Children.Add(new TextBlock() { Text = p, Foreground = Brushes.White });
 
 						item.X = xs;
 						item.Y = y;
@@ -453,7 +457,10 @@ namespace Visualizer
 								{
 									for (int j = 0; j < p.Inputs.Count; j++)
 									{
-										if (sub.Value.Ordinal == p.Inputs[j].Ins || (sub.Value.Name == "0" && p.Inputs[j].Ins == "gen_in") || (sub.Value.Name == "1" && p.Inputs[j].Ins == "gen_cut"))
+										if (
+											(!isQuest && sub.Value.Ordinal == p.Inputs[j].Ins || (sub.Value.Name == "0" && p.Inputs[j].Ins == "gen_in") || (sub.Value.Name == "1" && p.Inputs[j].Ins == "gen_cut")) ||
+											(isQuest && sub.Value.Name == p.Inputs[j].Ins)
+										)
 										{
 											ArrowLineNew l = new()
 											{
