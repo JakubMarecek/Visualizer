@@ -74,21 +74,31 @@
                 </VisualBrush.Visual>
             </VisualBrush>
         </Border.BorderBrush> -->
-        <Rectangle x:Name="Border" Stroke="Black" Fill="Black" StrokeThickness="2" RadiusX="5" RadiusY="5" />
+        <Rectangle Fill="#1e1e1e" StrokeThickness="2" RadiusX="5" RadiusY="5" />
         
         <Grid Margin="2,2,2,2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="30"/>
-                <RowDefinition Height="*" />
+				<RowDefinition Height="*" />
+				<RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <Rectangle x:Name="HeaderRectangle"  Grid.Row="0" Fill="Lime" RadiusX="5" RadiusY="5" />
+            <Rectangle x:Name="HeaderRectangle"  Grid.Row="0" Fill="#2d2d30" RadiusX="5" RadiusY="5" />
             <Grid Grid.Row="0" Name="HeaderGrid">
-                <TextBox x:Name="Header" Text="Widget" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                <TextBox x:Name="Header" Text="Widget" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,0,0,0" />
             </Grid>
-            <Rectangle Grid.Row="1" />
 
-            <StackPanel Orientation="Vertical" Name="list" Grid.Row="1" Margin="0,0,0,0">
+			<Grid Grid.Row="1" Background="#242426">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition />
+					<ColumnDefinition />
+				</Grid.ColumnDefinitions>
+
+				<StackPanel Orientation="Vertical" Name="listInputs" Grid.Column="0" Margin="0,0,0,0" />
+				<StackPanel Orientation="Vertical" Name="listOutputs" Grid.Column="1" Margin="0,0,0,0" />
+			</Grid>
+
+            <StackPanel Orientation="Vertical" Name="list" Grid.Row="2">
                 <!--<Border Margin="0,0,0,0" BorderBrush="Black" BorderThickness="1">
                     <StackPanel Orientation="Vertical" Margin="0,0,0,0">
                         <Grid Height="30">
@@ -103,7 +113,9 @@
                 </Border>-->
             </StackPanel>
             
-            <Rectangle Fill="#882979ff" Grid.RowSpan="2" Name="selected" IsVisible="False" />
+			<Border Background="#882979ff" Grid.RowSpan="3" Name="selected" IsVisible="False" CornerRadius="5" />
         </Grid>
+		
+		<Rectangle x:Name="Border" Stroke="#1e90ff" StrokeThickness="2" RadiusX="5" RadiusY="5" />
     </Grid>
 </UserControl>

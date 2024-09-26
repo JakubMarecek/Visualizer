@@ -4,6 +4,8 @@ using Avalonia.Media.Immutable;
 using Avalonia.Media;
 using Avalonia;
 using System;
+using System.Collections.Generic;
+using WpfPanAndZoom.CustomControls;
 
 namespace Visualizer
 {
@@ -250,6 +252,16 @@ namespace Visualizer
 
         public bool MakePoly { set; get; } = true;
 
+        public Widget FromBoxUI { set; get; }
+
+        public int FromBoxSecID { set; get; }
+
+        public int FromBoxInputs { set; get; }
+
+        public Widget ToBoxUI { set; get; }
+
+        public int ToBoxSecID { set; get; }
+
         static ArrowLineNew()
         {
             AffectsMeasure<ArrowLineNew>(StretchProperty, StrokeThicknessProperty);
@@ -334,15 +346,17 @@ namespace Visualizer
                     double lineLen = Vector.Subtract(new Point(X2, Y2), new Point(X1, Y1)).Length;
 
                     BezierSegment bezierSegment1 = new BezierSegment();
-                    bezierSegment1.Point1 = new Point(X1 + Math.Min(100, lineLen / 3), Y1);
-                    bezierSegment1.Point2 = new Point(X2 - Math.Min(100, lineLen / 3), Y2);
+                    bezierSegment1.Point1 = new Point(X1 + 200, Y1);
+                    bezierSegment1.Point2 = new Point(X2 - 200, Y2);
+                    //bezierSegment1.Point1 = new Point(X1 + Math.Min(100, lineLen / 3), Y1);
+                    //bezierSegment1.Point2 = new Point(X2 - Math.Min(100, lineLen / 3), Y2);
                     bezierSegment1.Point3 = new Point(X2, Y2);
 
                     pathfigLine.IsClosed = false;
                     pathfigLine.Segments.Add(bezierSegment1);
                     pathfigLine.StartPoint = new Point(X1, Y1);
 
-                    pathgeo.Figures.Add(CalculateDot(pathfigLine.StartPoint));
+                    //pathgeo.Figures.Add(CalculateDot(pathfigLine.StartPoint));
                     pathgeo.Figures.Add(pathfigLine);
                     pathgeo.Figures.Add(CalculateArrow(bezierSegment1.Point2, bezierSegment1.Point3));
                 }

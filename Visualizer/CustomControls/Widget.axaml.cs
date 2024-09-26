@@ -4,7 +4,7 @@ namespace WpfPanAndZoom.CustomControls
 {
     public partial class Widget : UserControl
     {
-        public string ID { set; get; }
+        public int ID { set; get; }
 
         public bool DisableMove { set; get; }
 

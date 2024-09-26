@@ -1,4 +1,5 @@
 ﻿using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
@@ -8,519 +9,966 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using WpfPanAndZoom.CustomControls;
 
 namespace Visualizer
 {
-	public partial class MainWindow : Window
+    public partial class MainWindow : Window
 	{
+		const int boxWidth = 500;
+		const int space = 200;
+
 		public static MainWindow MainWnd;
+		Dictionary<string, Item> Items = new();
+		bool isQuest = false;
+
+		public static SolidColorBrush brushBlue = new SolidColorBrush(Color.Parse("#1e90ff"));
 
 		public MainWindow()
 		{
 			InitializeComponent();
 			MainWnd = this;
 			AddColors();
+
+			canvas.Moving += new PanAndZoomCanvas.MovingEventHandler(HandleMoving);
+			canvas.Zoomed += new PanAndZoomCanvas.ZoomEventHandler(HandleZoomed);
+			canvas.PointerPressed += W_MouseDoubleClick;
+			canvas.Moved += new PanAndZoomCanvas.MovedEventHandler(HandleMoved);
+			canvas.Debug += new PanAndZoomCanvas.DebugEventHandler(HandleDebug);
 		}
 
-		private async void Window_Loaded(object sender, RoutedEventArgs e)
+		private void HandleMoving(int id, double x, double y)
 		{
-			FilePickerOpenOptions opts = new();
-			opts.AllowMultiple = false;
-			opts.FileTypeFilter = new FilePickerFileType[] { new("Json") { Patterns = new[] { "*.scene.json", "*.questphase.json" } } };
-			opts.Title = "Select json";
+			UpdateLine(id);
+		}
 
-			int boxWidth = 500;
-			int space = 200;
+		private void HandleZoomed(int zoom)
+		{
+		}
 
-			var d = await StorageProvider.OpenFilePickerAsync(opts);
-			if (d != null && d.Count > 0)
+		private void W_MouseDoubleClick(object sender, PointerPressedEventArgs e)
+		{
+		}
+
+		private void HandleMoved()
+		{
+		}
+
+		private void HandleDebug(string txt)
+		{
+			debugTxt.Content += txt + Environment.NewLine;
+		}
+
+		private void searchTB_KeyUp(object sender, KeyEventArgs e)
+		{
+			foreach (var child in canvas.Children)
 			{
-				bool isQuest = false;
+				if (child is not Avalonia.Controls.Shapes.Line)
+                    child.Opacity = searchTB.Text == "" ? 1 : 0.25;
 
-				var fileName = d[0].Path.LocalPath;
-				Title = Path.GetFileName(fileName) + " - " + fileName;
+				if (searchTB.Text != "")
+					if (child is Widget w)
+					{
+						if (w.ID.ToString() == searchTB.Text)
+						{
+							w.Opacity = 1;
+						}
+					}
 
-				var text = File.ReadAllText(fileName);
-				var jsonData = (JObject)JsonConvert.DeserializeObject(text);
+                if (child is ArrowLineNew line)
+                {
+                    if (line.ToBoxUI.ID.ToString() == searchTB.Text || line.FromBoxUI.ID.ToString() == searchTB.Text)
+                    {
+                        line.Opacity = 1;
+                    }
+                }
+            }
+		}
 
-				Dictionary<string, Item> Items = new();
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				FilePickerOpenOptions opts = new();
+				opts.AllowMultiple = false;
+				opts.FileTypeFilter = new FilePickerFileType[] { new("Json") { Patterns = new[] { "*.scene.json", "*.questphase.json" } } };
+				opts.Title = "Select json";
 
-				List<string> getNodeParams(JToken questNode)
+				var d = await StorageProvider.OpenFilePickerAsync(opts);
+				if (d != null && d.Count > 0)
 				{
-					List<string> b = new();
+					var fileName = d[0].Path.LocalPath;
+					Title = Path.GetFileName(fileName) + " - " + fileName;
 
-					if (questNode != null)
+					var text = File.ReadAllText(fileName);
+					var jsonData = (JObject)JsonConvert.DeserializeObject(text);
+
+					/*List<string> getNodeParams(JToken questNode)
 					{
-						var type = questNode.SelectToken("Data.$type").ToString();
-						b.Add(type);
+						List<string> b = new();
 
-						var ts = questNode.SelectToken("Data.type.Data.$type");
-						if (ts != null)
+						if (questNode != null)
 						{
-							b.Add("    Type: " + ts.ToString());
-						}
+							var type = questNode.SelectToken("Data.$type").ToString();
+							b.Add(type);
 
-						if (type == "questConditionNodeDefinition" || type == "questPauseConditionNodeDefinition")
-						{
-							var condChild = questNode.SelectToken("Data.condition.Data.type.Data");
-							b.Add("    CondType: " + questNode.SelectToken("Data.condition.Data.$type"));
-
-							if (condChild != null && condChild?.SelectToken("$type")?.ToString() == "questRealtimeDelay_ConditionType")
-								b.Add(
-									"    Hours: " + condChild.SelectToken("hours").ToString() + "\n    Minutes: " + condChild.SelectToken("minutes").ToString() + "\n" +
-									"    Seconds: " + condChild.SelectToken("seconds").ToString() + "\n    Miliseconds: " + condChild.SelectToken("miliseconds").ToString()
-								);
-
-							if (condChild != null && condChild?.SelectToken("$type")?.ToString() == "questVarComparison_ConditionType")
-								b.Add("    " + condChild.SelectToken("factName").ToString() + " - " + condChild.SelectToken("comparisonType").ToString() + " - " + condChild.SelectToken("value").ToString());
-						}
-
-						if (type == "questFactsDBManagerNodeDefinition")
-							b.Add("    " + questNode.SelectToken("Data.type.Data.factName").ToString() + " - Exact: " + questNode.SelectToken("Data.type.Data.setExactValue").ToString() + " - Value: " + questNode.SelectToken("Data.type.Data.value").ToString());
-					}
-
-					return b;
-				}
-
-				if (fileName.EndsWith(".scene.json"))
-				{
-					Dictionary<int, string> NotablePoints = new();
-					var jsonNotable = jsonData.SelectTokens("Data.RootChunk.notablePoints.[*]");
-					foreach (var ntb in jsonNotable)
-					{
-						NotablePoints.Add(ntb.SelectToken("nodeId.id").ToObject<int>(), ntb.SelectToken("name.$value").ToString());
-					}
-
-					var graph = jsonData.SelectToken("Data.RootChunk.sceneGraph.Data.graph");
-					foreach (var g in graph)
-					{
-						var it = g.SelectToken("Data");
-
-						var idObj = it?.SelectToken("nodeId")?.SelectToken("id");
-						Console.WriteLine("" + idObj);
-
-						if (idObj == null) continue;
-
-						int id = int.Parse(idObj.ToString());
-
-						List<ItemOutput> itemOuts = new();
-
-						var outScksMapp = it.SelectToken("osockMappings");
-						var outScks = it.SelectToken("outputSockets");
-						if (outScks != null)
-							foreach (var sck in outScks)
+							var ts = questNode.SelectToken("Data.type.Data.$type");
+							if (ts != null)
 							{
-								Dictionary<string, ItemOutputStamp> a = new();
-
-								var dsts = sck.SelectToken("destinations");
-								foreach (var dst in dsts)
-								{
-									var destId = dst.SelectToken("nodeId.id");
-									Console.WriteLine("-" + destId);
-
-									if (!a.ContainsKey(destId.ToString()))
-										a.Add(destId.ToString(), new() { Name = dst.SelectToken("isockStamp.name").ToString(), Ordinal = dst.SelectToken("isockStamp.ordinal").ToString() } );
-								}
-
-								itemOuts.Add(new()
-								{
-									OutParams = (outScksMapp != null ? (outScksMapp[itemOuts.Count].SelectToken("$value").ToString() + " -> ") : "") + "name: " + sck.SelectToken("stamp.name").ToString() + ", ordinal: " + sck.SelectToken("stamp.ordinal").ToString(),
-									OutDests = a
-								});
+								b.Add("    Type: " + ts.ToString());
 							}
 
-						List<string> b = getNodeParams(it.SelectToken("questNode"));
-
-						var events = it.SelectToken("events");
-						if (events != null)
-						{
-							int index = 0;
-							foreach (var ev in events)
+							if (type == "questConditionNodeDefinition" || type == "questPauseConditionNodeDefinition")
 							{
-								var type = ev.SelectToken("Data.$type").ToString();
+								var condChild = questNode.SelectToken("Data.condition.Data.type.Data");
+								b.Add("    CondType: " + questNode.SelectToken("Data.condition.Data.$type"));
 
-								string strToDisplay = $"#{index} - " + ev.SelectToken("Data.startTime").ToString() + " -> " + type;
+								if (condChild != null && condChild?.SelectToken("$type")?.ToString() == "questRealtimeDelay_ConditionType")
+									b.Add(
+										"    Hours: " + condChild.SelectToken("hours").ToString() + "\n    Minutes: " + condChild.SelectToken("minutes").ToString() + "\n" +
+										"    Seconds: " + condChild.SelectToken("seconds").ToString() + "\n    Miliseconds: " + condChild.SelectToken("miliseconds").ToString()
+									);
 
-								if (type == "scneventsSocket")
-								{
-									strToDisplay += ", name: " + ev.SelectToken("Data.osockStamp.name").ToString() +
-										", ordinal: " + ev.SelectToken("Data.osockStamp.ordinal").ToString();
-								}
-
-								if (type == "scneventsVFXEvent")
-								{
-									var eff = ev.SelectToken("Data.effectEntry.effectName.$value")?.ToString();
-									strToDisplay += ", action: " + ev.SelectToken("Data.action").ToString() + (eff != null ? ", effect: " + eff : "");
-								}
-
-								b.Add(strToDisplay);
-								index++;
+								if (condChild != null && condChild?.SelectToken("$type")?.ToString() == "questVarComparison_ConditionType")
+									b.Add("    " + condChild.SelectToken("factName").ToString() + " - " + condChild.SelectToken("comparisonType").ToString() + " - " + condChild.SelectToken("value").ToString());
 							}
+
+							if (type == "questFactsDBManagerNodeDefinition")
+								b.Add("    " + questNode.SelectToken("Data.type.Data.factName").ToString() + " - Exact: " + questNode.SelectToken("Data.type.Data.setExactValue").ToString() + " - Value: " + questNode.SelectToken("Data.type.Data.value").ToString());
 						}
 
-						var duration = it.SelectToken("sectionDuration");
-						if (duration != null)
-							b.Add("    Duration: " + duration.SelectToken("stu").ToString());
+						return b;
+					}*/
 
-						var ntbName = "";
-						if (NotablePoints.ContainsKey(id)) ntbName = " - " + NotablePoints[id];
-
-						var inScksMapp = it.SelectToken("isockMappings");
-						List<ItemInput> itemInps = new();
-						if (inScksMapp != null)
-							foreach (var inSck in inScksMapp)
-							{
-								itemInps.Add(new()
-								{
-									InParams = inSck.SelectToken("$value").ToString(),
-									Ins = itemInps.Count.ToString()
-								});
-							}
-						else
-						{
-							itemInps.Add(new()
-							{
-								InParams = "In",
-								Ins = "gen_in"
-							});
-							itemInps.Add(new()
-							{
-								InParams = "CutDestination",
-								Ins = "gen_cut"
-							});
-						}
-
-						Items.Add(id.ToString(), new() { Outputs = itemOuts, Inputs = itemInps, Draw = false, Name = it.SelectToken("$type").ToString() + ntbName, Params = b });
-					}
-				}
-				if (fileName.EndsWith(".questphase.json"))
-				{
-					isQuest = true;
-					
-					var graph = jsonData.SelectToken("Data.RootChunk.graph.Data.nodes");
-
-					string findSocket(string handleID)
+					if (fileName.EndsWith(".scene.json"))
 					{
-						foreach (var fsG in graph)
+						Dictionary<int, string> NotablePoints = new();
+						var jsonNotable = jsonData.SelectTokens("Data.RootChunk.notablePoints.[*]");
+						foreach (var ntb in jsonNotable)
 						{
-							var fsSockets = fsG.SelectToken("Data.sockets");
-							foreach (var fsSocket in fsSockets)
-							{
-								var fsSocketHandleID = fsSocket.SelectToken("HandleId")?.ToString();
-								if (fsSocketHandleID == handleID)
-								{
-									return fsG.SelectToken("Data.id").ToString();
-								}
-
-								var fsSocketHandleRefID = fsSocket.SelectToken("HandleRefId")?.ToString();
-								if (fsSocketHandleRefID == handleID)
-								{
-									return fsG.SelectToken("Data.id").ToString();
-								}
-							}
+							NotablePoints.Add(ntb.SelectToken("nodeId.id").ToObject<int>(), ntb.SelectToken("name.$value").ToString());
 						}
 
-						return "";
-					}
-
-					Dictionary<string, string> nodesSckNames = [];
-					string findParentSocketName(JToken jToken, string srcHandleID)
-					{
-						var socketsDefs = (graph as JArray).Descendants().Where(a => a.SelectToken("Data.$type")?.ToString() == "questSocketDefinition");
-						foreach (var socketsDef in socketsDefs)
+						var graph = jsonData.SelectToken("Data.RootChunk.sceneGraph.Data.graph");
+						foreach (var g in graph)
 						{
-							var handleID = socketsDef.SelectToken("HandleId").ToString();
-							if (handleID == srcHandleID)
-							{
-								var sckName = socketsDef.SelectToken("Data.name.$value").ToString();
-								var sckType = socketsDef.SelectToken("Data.type").ToString();
+							var it = g.SelectToken("Data");
 
-								if (!nodesSckNames.ContainsKey(handleID))
-									nodesSckNames.Add(handleID, "(" + handleID + ") " + sckName); // + sckType + ": "
+							var idObj = it?.SelectToken("nodeId")?.SelectToken("id");
+							Console.WriteLine("" + idObj);
 
-								return handleID;
-							}
-						}
+							if (idObj == null) continue;
 
-						return "";
-					}
+							int id = int.Parse(idObj.ToString());
+							string nodeType = it.SelectToken("$type").ToString();
 
-					Dictionary<string, Dictionary<string, Dictionary<string, ItemOutputStamp>>> nodesConns = [];
-					Dictionary<string, List<string>> nodesDstConns = [];
+							List<ItemOutput> itemOuts = new();
 
-					var connDefs = (graph as JArray).Descendants().Where(a => a.SelectToken("Data.$type")?.ToString() == "graphGraphConnectionDefinition");
-					foreach (var connDef in connDefs)
-					{
-						var dest = "";
-						var src = "";
-
-						var destHandleRef = connDef.SelectToken("Data.destination.HandleRefId")?.ToString();
-						if (destHandleRef != null) dest = destHandleRef;
-						var destHandle = connDef.SelectToken("Data.destination.HandleId")?.ToString();
-						if (destHandle != null) dest = destHandle;
-
-						var srcHandleRef = connDef.SelectToken("Data.source.HandleRefId")?.ToString();
-						if (srcHandleRef != null) src = srcHandleRef;
-						var srcHandle = connDef.SelectToken("Data.source.HandleId")?.ToString();
-						if (srcHandle != null) src = srcHandle;
-
-						var destNode = findSocket(dest);
-						var srcNode = findSocket(src);
-
-						if (destNode != "" && srcNode != "")
-						{
-							var srcSckHandleID = findParentSocketName(connDef, src);
-							var dstSckHandleID = findParentSocketName(connDef, dest);
-
-							if (!nodesConns.TryGetValue(srcNode, out Dictionary<string, Dictionary<string, ItemOutputStamp>> value))
-							{
-								nodesConns.Add(srcNode, new() { { srcSckHandleID, new() { { destNode, new() { Name = dstSckHandleID } } } } });
-							}
-							else
-							{
-								if (!value.TryGetValue(srcSckHandleID, out Dictionary<string, ItemOutputStamp> value2))
+							var outScksMapp = it.SelectToken("osockMappings");
+							var outScks = it.SelectToken("outputSockets");
+							if (outScks != null)
+								foreach (var sck in outScks)
 								{
-									value.Add(srcSckHandleID, new() { { destNode, new() { Name = dstSckHandleID } } });
+									List<ItemConnector> a = new();
+
+									var dsts = sck.SelectToken("destinations");
+									foreach (var dst in dsts)
+									{
+										var destId = dst.SelectToken("nodeId.id");
+										Console.WriteLine("-" + destId);
+
+										//if (!a.ContainsKey(destId.ToString()))
+										a.Add(new() { SourceID = idObj.ToString(), DestinationID = destId.ToString(), Name = dst.SelectToken("isockStamp.name").ToString(), Ordinal = dst.SelectToken("isockStamp.ordinal").ToString() });
+									}
+
+									var outputName = "";
+									if (outScksMapp == null) outputName = Data.GetOutputsNames(nodeType, sck.SelectToken("stamp.name").ToObject<int>());
+
+									itemOuts.Add(new()
+									{
+										OutputName = (outScksMapp != null ? outScksMapp[itemOuts.Count].SelectToken("$value").ToString() : "") + outputName,
+										Name = sck.SelectToken("stamp.name").ToString(),
+										Ordinal = sck.SelectToken("stamp.ordinal").ToString(),
+										Connections = a
+									});
 								}
-								else
+
+							/*List<string> b = getNodeParams(it.SelectToken("questNode"));
+
+							var events = it.SelectToken("events");
+							if (events != null)
+							{
+								int index = 0;
+								foreach (var ev in events)
 								{
-									value2.Add(destNode, new() { Name = dstSckHandleID });
+									var type = ev.SelectToken("Data.$type").ToString();
+
+									string strToDisplay = $"#{index} - " + ev.SelectToken("Data.startTime").ToString() + " -> " + type;
+
+									if (type == "scneventsSocket")
+									{
+										strToDisplay += ", name: " + ev.SelectToken("Data.osockStamp.name").ToString() +
+											", ordinal: " + ev.SelectToken("Data.osockStamp.ordinal").ToString();
+									}
+
+									if (type == "scneventsVFXEvent")
+									{
+										var eff = ev.SelectToken("Data.effectEntry.effectName.$value")?.ToString();
+										strToDisplay += ", action: " + ev.SelectToken("Data.action").ToString() + (eff != null ? ", effect: " + eff : "");
+									}
+
+									b.Add(strToDisplay);
+									index++;
 								}
 							}
 
-							if (!nodesDstConns.TryGetValue(destNode, out List<string> value3))
-								nodesDstConns.Add(destNode, [dstSckHandleID]);
-							else if (!value3.Contains(dstSckHandleID))
-								value3.Add(dstSckHandleID);
-						}
+							var duration = it.SelectToken("sectionDuration");
+							if (duration != null)
+								b.Add("    Duration: " + duration.SelectToken("stu").ToString());
+							*/
 
-						Console.WriteLine("Nodes: " + srcNode + " > " + destNode + ", Handles: " + src + " > " + dest);
-					}
+							var rootChunk = jsonData.SelectToken("Data.RootChunk");
 
-					foreach (var g in graph)
-					{
-						var it = g.SelectToken("Data");
+							Dictionary<string, string> prms = [];
+							if (nodeType == "scnQuestNode") prms = NodeProperties.GetPropertiesForQuestNode(it.SelectToken("questNode.Data"), rootChunk);
+							else prms = NodeProperties.GetPropertiesForSectionNode(it, rootChunk);
+							//if (nodeType == "scnSectionNode" || nodeType == "scnRewindableSectionNode") prms = NodeProperties.GetPropertiesForSectionNode(it);
+							//if (nodeType == "scnStartNode" || nodeType == "scnEndNode") prms = NodeProperties.GetPropertiesForSectionNode(it, rootChunk);
 
-						var idObj = it?.SelectToken("id");
+							var ntbName = "";
+							if (NotablePoints.ContainsKey(id)) ntbName = " - " + NotablePoints[id];
 
-						if (idObj == null) continue;
+							int highestName = 0;
+							int highestOrdinal = 0;
 
-						int id = int.Parse(idObj.ToString());
-
-						List<ItemOutput> itemOuts = new();
-						List<ItemInput> itemInps = new();
-						List<string> b = getNodeParams(g);
-
-						if (nodesConns.ContainsKey(idObj.ToString()))
-						{
-							var nodesConn = nodesConns[idObj.ToString()];
-							foreach (var connSck in nodesConn)
+							var inScksMapp = it.SelectToken("isockMappings");
+							List<ItemInput> itemInps = new();
+							if (inScksMapp != null)
 							{
-								itemOuts.Add(new()
-								{
-									OutParams = nodesSckNames[connSck.Key],
-									OutDests = connSck.Value
-								});
-							}
-						}
-
-						foreach (var nodesDstConn in nodesDstConns)
-						{
-							if (nodesDstConn.Key == idObj.ToString())
-							{
-								foreach (var sckHandleID in nodesDstConn.Value)
+								foreach (var inSck in inScksMapp)
 								{
 									itemInps.Add(new()
 									{
-										InParams = nodesSckNames[sckHandleID],
-										Ins = sckHandleID
+										InputName = inSck.SelectToken("$value").ToString(),
+										Name = "0",
+										Ordinal = itemInps.Count.ToString()
 									});
 								}
+
+								highestOrdinal = itemInps.Count - 1;
 							}
-						}
-
-						Items.Add(id.ToString(), new() { Outputs = itemOuts, Inputs = itemInps, Draw = false, Name = it.SelectToken("$type").ToString(), Params = b });
-					}
-				}
-
-				int x = 0;
-				int y = 0;
-
-				List<string> ItemsDraw = new();
-
-				int dr(string id, Item item, int xs = 0)
-				{
-					int thisH = 0;
-
-					if (!item.Draw)
-					{
-						var w = new Widget();
-						w.ID = w.Header.Text = id + " - " + item.Name;
-						w.Header.Foreground = Brushes.White;
-						w.Width = boxWidth;
-						w.HeaderRectangle.Fill = item.Name == "scnEndNode" ? Brushes.Red : Brushes.Green;
-						canvas.Children.Add(w);
-						Canvas.SetLeft(w, xs);
-						Canvas.SetTop(w, y);
-
-						for (int i = 0; i < item.Inputs.Count; i++)
-							w.list.Children.Add(new TextBlock() { Text = item.Inputs[i].InParams, Background = Brushes.DarkOrange, Foreground = Brushes.Black });
-
-						for (int i = 0; i < item.Outputs.Count; i++)
-							w.list.Children.Add(new TextBlock() { Text = item.Outputs[i].OutParams, Background = Brushes.DarkRed, Foreground = Brushes.White });
-
-						foreach (var p in item.Params)
-							w.list.Children.Add(new TextBlock() { Text = p, Foreground = Brushes.White });
-
-						item.X = xs;
-						item.Y = y;
-						item.Draw = true;
-
-						ItemsDraw.Add(id);
-
-						y += 100;
-						thisH = 100;
-
-						int childH = 0;
-						foreach (var sub in item.Outputs)
-						{
-							foreach (var sub2 in sub.OutDests)
+							else
 							{
-								var p = Items[sub2.Key];
+								var inputVarCount = it.SelectToken("numInSockets")?.Value<int>() ?? 1;
 
-								childH += dr(sub2.Key, p, xs + boxWidth + space);
-							}
-						}
+								itemInps = Data.GetInputsNames(nodeType, inputVarCount);
 
-						thisH += childH;
-
-						var tmp = 0;
-						for (int i = 0; i < item.Outputs.Count; i++)
-						{
-							tmp += 17;
-							thisH += 17;
-						}
-						foreach (var p in item.Params)
-						{
-							tmp += 17;
-							thisH += 17;
-						}
-
-						if (childH < tmp + 100)
-							y = y - childH + tmp;
-					}
-
-					return thisH;
-				}
-
-				if (fileName.EndsWith(".scene.json"))
-				{
-					var entryPoints = jsonData.SelectToken("Data.RootChunk.entryPoints");
-					foreach (var ep in entryPoints)
-					{
-						string start = ep.SelectToken("nodeId").SelectToken("id").ToString();
-						var startItem = Items[start];
-						dr(start, startItem, x);
-					}
-				}
-				if (fileName.EndsWith(".questphase.json"))
-				{
-					var graph = jsonData.SelectToken("Data.RootChunk.graph.Data.nodes");
-					foreach (var g in graph)
-					{
-						if (g.SelectToken("Data.$type").ToString() == "questInputNodeDefinition")
-						{
-							string start = g.SelectToken("Data.id").ToString();
-							var startItem = Items[start];
-							dr(start, startItem, x);
-						}
-					}
-				}
-
-				/*foreach (var item in Items)
-                {
-                    dr(item.Key, item.Value);
-                }*/
-
-				int selClr = 0;
-				foreach (var item in Items)
-				{
-					if (item.Value.Draw)
-						for (int i = 0; i < item.Value.Outputs.Count; i++)
-						{
-							foreach (var sub in item.Value.Outputs[i].OutDests)
-							{
-								var p = Items[sub.Key];
-								if (p.Draw)
+								foreach (var itemInp in itemInps)
 								{
-									for (int j = 0; j < p.Inputs.Count; j++)
-									{
-										if (
-											(!isQuest && sub.Value.Ordinal == p.Inputs[j].Ins || (sub.Value.Name == "0" && p.Inputs[j].Ins == "gen_in") || (sub.Value.Name == "1" && p.Inputs[j].Ins == "gen_cut")) ||
-											(isQuest && sub.Value.Name == p.Inputs[j].Ins)
-										)
-										{
-											ArrowLineNew l = new()
-											{
-												StrokeThickness = 2,
-												Stroke = new SolidColorBrush(linesColors[selClr]),
-												X1 = item.Value.X + boxWidth,
-												Y1 = item.Value.Y + 40 + (16 * i) + (item.Value.Inputs.Count * 16),
-												X2 = p.X,
-												Y2 = p.Y + 40 + (j * 16)
-											};
-											l.MakeBezierAlt = true;
-											l.MakePoly = false;
-											canvas.Children.Add(l);
+									highestName = Math.Max(highestName, int.Parse(itemInp.Name));
+									highestOrdinal = Math.Max(highestOrdinal, int.Parse(itemInp.Ordinal));
+								}
+							}
 
-											selClr++;
-											if (selClr >= linesColors.Count)
-												selClr = 0;
+							Items.Add(id.ToString(), new()
+							{
+								Outputs = itemOuts,
+								Inputs = itemInps,
+								Draw = false,
+								Name = nodeType + ntbName,
+								Params = prms,
+								HighestName = highestName,
+								HighestOrdinal = highestOrdinal
+							});
+						}
+					}
+					if (fileName.EndsWith(".questphase.json"))
+					{
+						isQuest = true;
+
+						var graph = jsonData.SelectToken("Data.RootChunk.graph.Data.nodes");
+
+						string findSocket(string handleID)
+						{
+							foreach (var fsG in graph)
+							{
+								var fsSockets = fsG.SelectToken("Data.sockets");
+								foreach (var fsSocket in fsSockets)
+								{
+									var fsSocketHandleID = fsSocket.SelectToken("HandleId")?.ToString();
+									if (fsSocketHandleID == handleID)
+									{
+										return fsG.SelectToken("Data.id").ToString();
+									}
+
+									var fsSocketHandleRefID = fsSocket.SelectToken("HandleRefId")?.ToString();
+									if (fsSocketHandleRefID == handleID)
+									{
+										return fsG.SelectToken("Data.id").ToString();
+									}
+								}
+							}
+
+							return "";
+						}
+
+						/*Dictionary<string, string> nodesSckNames = [];
+						string findParentSocketName(JToken jToken, string srcHandleID)
+						{
+							var socketsDefs = (graph as JArray).Descendants().Where(a => a.SelectToken("Data.$type")?.ToString() == "questSocketDefinition");
+							foreach (var socketsDef in socketsDefs)
+							{
+								var handleID = socketsDef.SelectToken("HandleId").ToString();
+								if (handleID == srcHandleID)
+								{
+									var sckName = socketsDef.SelectToken("Data.name.$value").ToString();
+									var sckType = socketsDef.SelectToken("Data.type").ToString();
+
+									if (!nodesSckNames.ContainsKey(handleID))
+										nodesSckNames.Add(handleID, "(" + handleID + ") " + sckName); // + sckType + ": "
+
+									return handleID;
+								}
+							}
+
+							return "";
+						}*/
+
+						//Dictionary<string, Dictionary<string, Dictionary<string, ItemConnector>>> nodesConns = [];
+						//Dictionary<string, List<string>> nodesDstConns = [];
+						List<QuestConnector> connections = [];
+						List<QuestSocket> sockets = [];
+
+						var socketDefs = (graph as JArray).Descendants().Where(a => a.SelectToken("Data.$type")?.ToString() == "questSocketDefinition");
+						foreach (var socketDef in socketDefs)
+						{
+							sockets.Add(new()
+							{
+								Name = socketDef.SelectToken("Data.name.$value").Value<string>(),
+								Type = socketDef.SelectToken("Data.type").Value<string>(),
+								HandleID = socketDef.SelectToken("HandleId").Value<string>()
+							});
+						}
+
+						var connDefs = (graph as JArray).Descendants().Where(a => a.SelectToken("Data.$type")?.ToString() == "graphGraphConnectionDefinition");
+						foreach (var connDef in connDefs)
+						{
+							var dest = "";
+							var src = "";
+
+							var destHandleRef = connDef.SelectToken("Data.destination.HandleRefId")?.ToString();
+							if (destHandleRef != null) dest = destHandleRef;
+							var destHandle = connDef.SelectToken("Data.destination.HandleId")?.ToString();
+							if (destHandle != null) dest = destHandle;
+
+							var srcHandleRef = connDef.SelectToken("Data.source.HandleRefId")?.ToString();
+							if (srcHandleRef != null) src = srcHandleRef;
+							var srcHandle = connDef.SelectToken("Data.source.HandleId")?.ToString();
+							if (srcHandle != null) src = srcHandle;
+
+							var destNode = findSocket(dest);
+							var srcNode = findSocket(src);
+
+							if (destNode != "" && srcNode != "")
+							{
+								//var srcSckHandleID = findParentSocketName(connDef, src);
+								//var dstSckHandleID = findParentSocketName(connDef, dest);
+
+								connections.Add(new()
+								{
+									SourceID = srcNode,
+									DestinationID = destNode,
+									SourceHandleID = src,
+									DestinationHandleID = dest
+								});
+
+								/*if (!nodesConns.TryGetValue(srcNode, out Dictionary<string, Dictionary<string, ItemConnector>> value))
+								{
+									nodesConns.Add(srcNode, new() { { srcSckHandleID, new() { { destNode, new() { Name = dstSckHandleID } } } } });
+								}
+								else
+								{
+									if (!value.TryGetValue(srcSckHandleID, out Dictionary<string, ItemConnector> value2))
+									{
+										value.Add(srcSckHandleID, new() { { destNode, new() { Name = dstSckHandleID } } });
+									}
+									else
+									{
+										var duplicatedConnection = value2.TryAdd(destNode, new() { Name = dstSckHandleID });
+										if (!duplicatedConnection)
+										{
+											var t = "Duplicated connection: " + srcNode + " > " + destNode + ", Handles: " + src + " > " + dest;
+											Console.WriteLine(t);
+											HandleDebug(t);
 										}
 									}
 								}
 
-								/*var p = Items[sub];
-								if (p.Draw)
-								{
-									ArrowLineNew l = new()
-									{
-										StrokeThickness = 2,
-										Stroke = new SolidColorBrush(linesColors[selClr]),
-										X1 = item.Value.X + boxWidth,
-										Y1 = item.Value.Y + 40 + (16 * i),
-										X2 = p.X,
-										Y2 = p.Y + 15
-									};
-									l.MakeBezierAlt = true;
-									l.MakePoly = false;
-									canvas.Children.Add(l);
+								if (!nodesDstConns.TryGetValue(destNode, out List<string> value3))
+									nodesDstConns.Add(destNode, [dstSckHandleID]);
+								else if (!value3.Contains(dstSckHandleID))
+									value3.Add(dstSckHandleID);*/
+							}
 
-									selClr++;
-									if (selClr >= linesColors.Count)
-										selClr = 0;
-								}*/
+							Console.WriteLine("Nodes: " + srcNode + " > " + destNode + ", Handles: " + src + " > " + dest);
+						}
+
+						var dupes = connections.GroupBy(x => new { x.SourceID, x.DestinationID, x.SourceHandleID, x.DestinationHandleID }).Where(x => x.Skip(1).Any());
+						foreach (var dup in dupes)
+						{
+							var t = "Duplicated connection: " + dup.Key.SourceID + " > " + dup.Key.DestinationID + ", Handles: " + dup.Key.SourceHandleID + " > " + dup.Key.DestinationHandleID;
+							Console.WriteLine(t);
+							HandleDebug(t);
+						}
+
+						foreach (var g in graph)
+						{
+							var it = g.SelectToken("Data");
+							string nodeType = it.SelectToken("$type").ToString();
+
+							var idObj = it?.SelectToken("id");
+
+							if (idObj == null) continue;
+
+							int id = int.Parse(idObj.ToString());
+
+							List<ItemOutput> itemOuts = new();
+							List<ItemInput> itemInps = new();
+
+							Dictionary<string, string> prms = NodeProperties.GetPropertiesForQuestNode(it);
+
+							foreach (var socket in it.SelectToken("sockets"))
+							{
+								var handleId = socket.SelectToken("HandleId")?.Value<string>();
+								var handleRefId = socket.SelectToken("HandleRefId")?.Value<string>();
+
+								var socketDef = sockets.SingleOrDefault(a => a.HandleID == handleId || a.HandleID == handleRefId);
+								if (socketDef.Type == "Input" || socketDef.Type == "CutDestination")
+								{
+									itemInps.Add(new()
+									{
+										InputName = socketDef.Name,
+										HandleID = socketDef.HandleID
+									});
+								}
+								if (socketDef.Type == "Output" || socketDef.Type == "CutSource")
+								{
+									List<ItemConnector> c = [];
+
+									foreach (var conn in connections)
+									{
+										if (conn.SourceHandleID == socketDef.HandleID)
+											c.Add(new()
+											{
+												DestinationID = conn.DestinationID,
+												HandleID = conn.DestinationHandleID
+											});
+									}
+
+									itemOuts.Add(new()
+									{
+										OutputName = socketDef.Name,
+										HandleID = socketDef.HandleID,
+										Connections = c
+									});
+								}
+							}
+
+
+
+
+							/*if (nodesConns.ContainsKey(idObj.ToString()))
+							{
+								var nodesConn = nodesConns[idObj.ToString()];
+								foreach (var connSck in nodesConn)
+								{
+									itemOuts.Add(new()
+									{
+										OutParams = nodesSckNames[connSck.Key],
+										OutDests = connSck.Value
+									});
+								}
+							}
+
+							foreach (var nodesDstConn in nodesDstConns)
+							{
+								if (nodesDstConn.Key == idObj.ToString())
+								{
+									foreach (var sckHandleID in nodesDstConn.Value)
+									{
+										itemInps.Add(new()
+										{
+											InParams = nodesSckNames[sckHandleID],
+											Ins = sckHandleID
+										});
+									}
+								}
+							}*/
+
+							Items.Add(id.ToString(), new() { Outputs = itemOuts, Inputs = itemInps, Draw = false, Name = nodeType, Params = prms });
+						}
+					}
+
+					/*
+										if (fileName.EndsWith(".questphase.json"))
+										{
+											isQuest = true;
+
+											var graph = jsonData.SelectToken("Data.RootChunk.graph.Data.nodes");
+
+											string findSocket(string handleID)
+											{
+												foreach (var fsG in graph)
+												{
+													var fsSockets = fsG.SelectToken("Data.sockets");
+													foreach (var fsSocket in fsSockets)
+													{
+														var fsSocketHandleID = fsSocket.SelectToken("HandleId")?.ToString();
+														if (fsSocketHandleID == handleID)
+														{
+															return fsG.SelectToken("Data.id").ToString();
+														}
+
+														var fsSocketHandleRefID = fsSocket.SelectToken("HandleRefId")?.ToString();
+														if (fsSocketHandleRefID == handleID)
+														{
+															return fsG.SelectToken("Data.id").ToString();
+														}
+													}
+												}
+
+												return "";
+											}
+
+											Dictionary<string, string> nodesSckNames = [];
+											string findParentSocketName(JToken jToken, string srcHandleID)
+											{
+												var socketsDefs = (graph as JArray).Descendants().Where(a => a.SelectToken("Data.$type")?.ToString() == "questSocketDefinition");
+												foreach (var socketsDef in socketsDefs)
+												{
+													var handleID = socketsDef.SelectToken("HandleId").ToString();
+													if (handleID == srcHandleID)
+													{
+														var sckName = socketsDef.SelectToken("Data.name.$value").ToString();
+														var sckType = socketsDef.SelectToken("Data.type").ToString();
+
+														if (!nodesSckNames.ContainsKey(handleID))
+															nodesSckNames.Add(handleID, "(" + handleID + ") " + sckName); // + sckType + ": "
+
+														return handleID;
+													}
+												}
+
+												return "";
+											}
+
+											Dictionary<string, Dictionary<string, Dictionary<string, ItemOutputStamp>>> nodesConns = [];
+											Dictionary<string, List<string>> nodesDstConns = [];
+
+											var connDefs = (graph as JArray).Descendants().Where(a => a.SelectToken("Data.$type")?.ToString() == "graphGraphConnectionDefinition");
+											foreach (var connDef in connDefs)
+											{
+												var dest = "";
+												var src = "";
+
+												var destHandleRef = connDef.SelectToken("Data.destination.HandleRefId")?.ToString();
+												if (destHandleRef != null) dest = destHandleRef;
+												var destHandle = connDef.SelectToken("Data.destination.HandleId")?.ToString();
+												if (destHandle != null) dest = destHandle;
+
+												var srcHandleRef = connDef.SelectToken("Data.source.HandleRefId")?.ToString();
+												if (srcHandleRef != null) src = srcHandleRef;
+												var srcHandle = connDef.SelectToken("Data.source.HandleId")?.ToString();
+												if (srcHandle != null) src = srcHandle;
+
+												var destNode = findSocket(dest);
+												var srcNode = findSocket(src);
+
+												if (destNode != "" && srcNode != "")
+												{
+													var srcSckHandleID = findParentSocketName(connDef, src);
+													var dstSckHandleID = findParentSocketName(connDef, dest);
+
+													if (!nodesConns.TryGetValue(srcNode, out Dictionary<string, Dictionary<string, ItemOutputStamp>> value))
+													{
+														nodesConns.Add(srcNode, new() { { srcSckHandleID, new() { { destNode, new() { Name = dstSckHandleID } } } } });
+													}
+													else
+													{
+														if (!value.TryGetValue(srcSckHandleID, out Dictionary<string, ItemOutputStamp> value2))
+														{
+															value.Add(srcSckHandleID, new() { { destNode, new() { Name = dstSckHandleID } } });
+														}
+														else
+														{
+															var duplicatedConnection = value2.TryAdd(destNode, new() { Name = dstSckHandleID });
+															if (!duplicatedConnection)
+															{
+																var t = "Duplicated connection: " + srcNode + " > " + destNode + ", Handles: " + src + " > " + dest;
+																Console.WriteLine(t);
+																HandleDebug(t);
+															}
+														}
+													}
+
+													if (!nodesDstConns.TryGetValue(destNode, out List<string> value3))
+														nodesDstConns.Add(destNode, [dstSckHandleID]);
+													else if (!value3.Contains(dstSckHandleID))
+														value3.Add(dstSckHandleID);
+												}
+
+												Console.WriteLine("Nodes: " + srcNode + " > " + destNode + ", Handles: " + src + " > " + dest);
+											}
+
+											foreach (var g in graph)
+											{
+												var it = g.SelectToken("Data");
+												string nodeType = it.SelectToken("$type").ToString();
+
+												var idObj = it?.SelectToken("id");
+
+												if (idObj == null) continue;
+
+												int id = int.Parse(idObj.ToString());
+
+												List<ItemOutput> itemOuts = new();
+												List<ItemInput> itemInps = new();
+
+												Dictionary<string, string> prms = NodeProperties.GetPropertiesForQuestNode(it);
+
+												if (nodesConns.ContainsKey(idObj.ToString()))
+												{
+													var nodesConn = nodesConns[idObj.ToString()];
+													foreach (var connSck in nodesConn)
+													{
+														itemOuts.Add(new()
+														{
+															OutParams = nodesSckNames[connSck.Key],
+															OutDests = connSck.Value
+														});
+													}
+												}
+
+												foreach (var nodesDstConn in nodesDstConns)
+												{
+													if (nodesDstConn.Key == idObj.ToString())
+													{
+														foreach (var sckHandleID in nodesDstConn.Value)
+														{
+															itemInps.Add(new()
+															{
+																InParams = nodesSckNames[sckHandleID],
+																Ins = sckHandleID
+															});
+														}
+													}
+												}
+
+												Items.Add(id.ToString(), new() { Outputs = itemOuts, Inputs = itemInps, Draw = false, Name = nodeType, Params = prms });
+											}
+										}
+					*/
+
+
+
+
+
+
+					/*bool checkInput(string nodeType, string name, string ins)
+					{
+						Dictionary<string, string> insNames = Data.GetInputsNames(nodeType);
+
+						var nameInt = int.Parse(name);
+
+						if (insNames.Count > nameInt && insNames.Count > 0)
+							return insNames.ElementAt(nameInt).Key == ins;
+						else
+							return false;
+					}*/
+
+					foreach (var item in Items)
+					{
+						for (int i = 0; i < item.Value.Outputs.Count; i++)
+						{
+							foreach (var sub in item.Value.Outputs[i].Connections)
+							{
+								var p = Items[sub.DestinationID];
+								{
+									for (int j = 0; j < p.Inputs.Count; j++)
+									{
+										if ((!isQuest && sub.Name == p.Inputs[j].Name && sub.Ordinal == p.Inputs[j].Ordinal) || (isQuest && sub.HandleID == p.Inputs[j].HandleID))
+										{
+											p.Inputs[j].IsUsed = true;
+										}
+									}
+								}
 							}
 						}
+					}
+
+
+
+
+
+
+
+
+
+
+					int x = 0;
+					int y = 0;
+
+					List<string> ItemsDraw = new();
+
+					int dr(string id, Item item, int xs = 0)
+					{
+						int thisH = 0;
+
+						if (!item.Draw)
+						{
+							var w = new Widget();
+							w.ID = int.Parse(id);
+							w.Header.Text = "[" + id + "] " + item.Name;
+							w.Header.Foreground = Brushes.White;
+							w.Width = boxWidth;
+
+							if (item.Name == "scnStartNode" || item.Name == "questInputNodeDefinition") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#FF076C00"));
+							if (item.Name == "scnEndNode" || item.Name == "questOutputNodeDefinition") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#81FF0004"));
+
+                            w.ZIndex = 10;
+							canvas.Children.Add(w);
+							Canvas.SetLeft(w, xs);
+							Canvas.SetTop(w, y);
+
+							for (int i = 0; i < item.Inputs.Count; i++)
+							{
+								var g = new Grid();
+								if (!item.Inputs[i].IsUsed) g.Children.Add(new Border() { BorderThickness = new(2), CornerRadius = new(10), BorderBrush = brushBlue, Width = 15, Height = 15, Margin = new(5, 0, 0, 0), HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left });
+								if (item.Inputs[i].IsUsed) g.Children.Add(new Avalonia.Controls.Shapes.Ellipse() { Fill = brushBlue, Width = 15, Height = 15, Margin = new(5, 0, 0, 0), HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left });
+								g.Children.Add(new TextBlock() { Text = item.Inputs[i].DisplayName, Margin = new(25, 0, 0, 0) });
+								w.listInputs.Children.Add(g);
+							}
+
+							for (int i = 0; i < item.Outputs.Count; i++)
+							{
+								var g = new Grid();
+								if (item.Outputs[i].Connections.Count == 0) g.Children.Add(new Border() { BorderThickness = new(2), CornerRadius = new(10), BorderBrush = brushBlue, Width = 15, Height = 15, Margin = new(0, 0, 5, 0), HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right });
+								if (item.Outputs[i].Connections.Count > 0) g.Children.Add(new Avalonia.Controls.Shapes.Ellipse() { Fill = brushBlue, Width = 15, Height = 15, Margin = new(0, 0, 5, 0), HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right });
+								g.Children.Add(new TextBlock() { Text = item.Outputs[i].DisplayName, Margin = new(0, 0, 25, 0), TextAlignment = TextAlignment.Right });
+								w.listOutputs.Children.Add(g);
+							}
+
+							foreach (var p in item.Params)
+							{
+								var sp = new StackPanel();
+								sp.Orientation = Avalonia.Layout.Orientation.Horizontal;
+								sp.Children.Add(new TextBlock() { Text = p.Key, Foreground = new SolidColorBrush(Color.Parse("#999999")), Margin = new(0, 0, 4, 0) });
+								sp.Children.Add(new TextBlock() { Text = p.Value, Foreground = Brushes.White });
+								w.list.Children.Add(sp);
+							}
+							if (item.Params.Count > 0)
+								w.list.Margin = new(5);
+
+							item.Draw = true;
+							item.UI = w;
+
+							ItemsDraw.Add(id);
+
+							y += 100;
+							thisH = 100;
+
+							int childH = 0;
+							foreach (var sub in item.Outputs)
+							{
+								foreach (var sub2 in sub.Connections)
+								{
+									var p = Items[sub2.DestinationID];
+
+									childH += dr(sub2.DestinationID, p, xs + boxWidth + space);
+								}
+							}
+
+							thisH += childH;
+
+							var tmpI = 0;
+							var tmpO = 0;
+							for (int i = 0; i < item.Outputs.Count; i++)
+							{
+								tmpO += 17;
+							}
+							for (int i = 0; i < item.Inputs.Count; i++)
+							{
+								tmpI += 17;
+							}
+							var tmp = Math.Max(tmpI, tmpO);
+							thisH += tmp;
+							foreach (var p in item.Params)
+							{
+								tmp += 17;
+								thisH += 17;
+							}
+
+							if (childH < tmp + 100)
+								y = y - childH + tmp;
+						}
+
+						return thisH;
+					}
+
+					if (fileName.EndsWith(".scene.json"))
+					{
+						var entryPoints = jsonData.SelectToken("Data.RootChunk.entryPoints");
+						foreach (var ep in entryPoints)
+						{
+							string start = ep.SelectToken("nodeId").SelectToken("id").ToString();
+							var startItem = Items[start];
+							dr(start, startItem, x);
+						}
+					}
+					if (fileName.EndsWith(".questphase.json"))
+					{
+						var graph = jsonData.SelectToken("Data.RootChunk.graph.Data.nodes");
+						foreach (var g in graph)
+						{
+							if (g.SelectToken("Data.$type").ToString() == "questInputNodeDefinition")
+							{
+								string start = g.SelectToken("Data.id").ToString();
+								var startItem = Items[start];
+								dr(start, startItem, x);
+							}
+						}
+					}
+
+					/*foreach (var item in Items)
+					{
+						dr(item.Key, item.Value);
+					}*/
+
+					int selClr = 0;
+					foreach (var item in Items)
+					{
+						if (item.Value.Draw)
+							for (int i = 0; i < item.Value.Outputs.Count; i++)
+							{
+								foreach (var sub in item.Value.Outputs[i].Connections)
+								{
+									var p = Items[sub.DestinationID];
+									if (p.Draw)
+									{
+										for (int j = 0; j < p.Inputs.Count; j++)
+										{
+											if (
+												//(!isQuest && sub.Value.Ordinal == p.Inputs[j].Ins || (sub.Value.Name == "0" && p.Inputs[j].Ins == "gen_in") || (sub.Value.Name == "1" && p.Inputs[j].Ins == "gen_cut")) ||
+												//!isQuest && sub.Ordinal == p.Inputs[j].Ins ||
+												//checkInput(item.Value.Name, sub.Name, p.Inputs[j].Ins) ||
+												//(isQuest && sub.Name == p.Inputs[j].Ins)
+												(!isQuest && sub.Name == p.Inputs[j].Name && sub.Ordinal == p.Inputs[j].Ordinal) ||
+												(isQuest && sub.HandleID == p.Inputs[j].HandleID)
+											)
+											{
+												ArrowLineNew l = new()
+												{
+													StrokeThickness = 2,
+													Stroke = new SolidColorBrush(linesColors[selClr]),
+													ZIndex = 20,
+													MakeBezierAlt = true,
+													MakePoly = false,
+													ToBoxUI = p.UI,
+													ToBoxSecID = j,
+													FromBoxUI = item.Value.UI,
+													FromBoxSecID = i,
+													FromBoxInputs = item.Value.Inputs.Count
+												};
+												canvas.Children.Add(l);
+
+												selClr++;
+												if (selClr >= linesColors.Count)
+													selClr = 0;
+											}
+                                        }
+
+                                        if (!isQuest)
+                                        {
+                                            if (int.Parse(sub.Name) > p.HighestName || int.Parse(sub.Ordinal) > p.HighestOrdinal)
+                                            {
+                                                var t = "Bad connection: " + sub.SourceID + " > " + sub.DestinationID;
+                                                Console.WriteLine(t);
+                                                HandleDebug(t);
+                                            }
+                                        }
+                                    }
+
+                                    /*var p = Items[sub];
+									if (p.Draw)
+									{
+										ArrowLineNew l = new()
+										{
+											StrokeThickness = 2,
+											Stroke = new SolidColorBrush(linesColors[selClr]),
+											X1 = item.Value.X + boxWidth,
+											Y1 = item.Value.Y + 40 + (16 * i),
+											X2 = p.X,
+											Y2 = p.Y + 15
+										};
+										l.MakeBezierAlt = true;
+										l.MakePoly = false;
+										canvas.Children.Add(l);
+
+										selClr++;
+										if (selClr >= linesColors.Count)
+											selClr = 0;
+									}*/
+								}
+							}
+					}
+
+					var w = new Widget();
+					w.ID = -1;
+					w.Header.Text = "Not included";
+					w.Header.Foreground = Brushes.White;
+					w.Width = 300;
+					w.HeaderRectangle.Fill = Brushes.Orange;
+					w.ZIndex = 10;
+					w.DisableMove = true;
+					canvas.Children.Add(w);
+					Canvas.SetLeft(w, -500);
+					Canvas.SetTop(w, 0);
+
+					foreach (var p in Items)
+						if (!ItemsDraw.Contains(p.Key))
+							w.list.Children.Add(new TextBlock() { Text = p.Key });
+						else
+							UpdateLine(p.Value.UI.ID);
+
+					canvas.RedrawGrid();
 				}
-
-				var w = new Widget();
-				w.ID = w.Header.Text = "Not included";
-				w.Header.Foreground = Brushes.White;
-				w.Width = 300;
-				w.HeaderRectangle.Fill = Brushes.Orange;
-				canvas.Children.Add(w);
-				Canvas.SetLeft(w, -500);
-				Canvas.SetTop(w, 0);
-
-				foreach (var p in Items)
-					if (!ItemsDraw.Contains(p.Key))
-						w.list.Children.Add(new TextBlock() { Text = p.Key });
+				else
+					Environment.Exit(0);
 			}
-			else
-				Environment.Exit(0);
+			catch (Exception ex)
+			{
+				HandleDebug(ex.ToString());
+			}
+		}
+
+		private void UpdateLine(int boxID)
+		{
+			foreach (var child in canvas.Children)
+			{
+				if (child is ArrowLineNew line)
+				{
+					if (line.ToBoxUI.ID == boxID || line.FromBoxUI.ID == boxID)
+					{
+						var a = canvas.Transform2(new(Canvas.GetLeft(line.FromBoxUI), Canvas.GetTop(line.FromBoxUI)));
+						var b = canvas.Transform2(new(Canvas.GetLeft(line.ToBoxUI), Canvas.GetTop(line.ToBoxUI)));
+
+						line.X1 = a.X + boxWidth;
+						line.Y1 = a.Y + 40 + (16 * line.FromBoxSecID); // + (line.FromBoxInputs * 16)
+						line.X2 = b.X;
+						line.Y2 = b.Y + 40 + (line.ToBoxSecID * 16);
+					}
+				}
+			}
 		}
 
 		List<Color> linesColors = new();
@@ -616,39 +1064,110 @@ namespace Visualizer
 
 	class Item
 	{
-		public int X { get; set; }
-
-		public int Y { get; set; }
-
 		public bool Draw { get; set; }
 
 		public string Name { get; set; }
+
+		public Widget UI { get; set; }
 
 		public List<ItemOutput> Outputs = new();
 
 		public List<ItemInput> Inputs = new();
 
-		public List<string> Params = new();
+		public Dictionary<string, string> Params = new();
+
+        public int HighestName { get; set; }
+
+        public int HighestOrdinal { get; set; }
+
+        public int HasInput(string name, string ordinal)
+		{
+			int uiIndex = 0;
+
+			for (int j = 0; j < Inputs.Count; j++)
+			{
+				if (name == Inputs[j].Name && ordinal == Inputs[j].Ordinal)
+				{
+					return j;
+				}
+			}
+
+			return uiIndex;
+		}
 	}
 
 	class ItemOutput
 	{
-		public string OutParams { get; set; }
+		public string DisplayName
+		{
+			get
+			{
+				return HandleID != "" ? OutputName + " [H:" + HandleID + "]" : OutputName + " [N:" + Name + ", O:" + Ordinal + "]";
+			}
+		}
 
-		public Dictionary<string, ItemOutputStamp> OutDests { get; set; }
+		public string OutputName { get; set; }
+
+		public string Name { get; set; }
+
+		public string Ordinal { get; set; }
+
+		public string HandleID { get; set; } = "";
+
+		public List<ItemConnector> Connections { get; set; }
 	}
 
-	class ItemOutputStamp
+	class ItemConnector
+    {
+        public string SourceID { get; set; }
+
+        public string DestinationID { get; set; }
+
+        public string Name { get; set; }
+
+		public string Ordinal { get; set; }
+
+		public string HandleID { get; set; }
+	}
+
+	public class ItemInput
+	{
+		public string DisplayName
+		{
+			get
+			{
+				return HandleID != "" ? "[H:" + HandleID + "] " + InputName : "[N:" + Name + ", O:" + Ordinal + "] " + InputName;
+			}
+		}
+
+		public string InputName { get; set; }
+
+		public string Name { get; set; }
+
+		public string Ordinal { get; set; }
+
+		public bool IsUsed { get; set; } = false;
+
+		public string HandleID { get; set; } = "";
+	}
+
+	public class QuestSocket
 	{
 		public string Name { get; set; }
-		
-		public string Ordinal { get; set; }
+
+		public string HandleID { get; set; }
+
+		public string Type { get; set; }
 	}
 
-	class ItemInput
+	public class QuestConnector
 	{
-		public string InParams { get; set; }
+		public string SourceID { get; set; }
 
-		public string Ins { get; set; }
+		public string DestinationID { get; set; }
+
+		public string SourceHandleID { get; set; }
+
+		public string DestinationHandleID { get; set; }
 	}
 }
