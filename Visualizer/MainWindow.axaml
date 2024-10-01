@@ -13,7 +13,7 @@
 	<Grid>
 		<Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
 			<CustomControls:PanAndZoomCanvas x:Name="canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True" />
-            <Label Content="" Name="debugTxt" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="20" FontWeight="Bold" Foreground="White" Margin="0,0,0,0" />
+            <Label Content="" Name="debugTxt" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="16" FontWeight="Bold" Foreground="White" Margin="0,0,0,0" />
 		    <TextBox Name="searchTB" HorizontalAlignment="Right" VerticalAlignment="Top" Width="200" KeyUp="searchTB_KeyUp" />
 		</Grid>
 	</Grid>

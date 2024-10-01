@@ -13,7 +13,7 @@ using WpfPanAndZoom.CustomControls;
 
 namespace Visualizer
 {
-    public partial class MainWindow : Window
+	public partial class MainWindow : Window
 	{
 		const int boxWidth = 500;
 		const int space = 200;
@@ -64,7 +64,7 @@ namespace Visualizer
 			foreach (var child in canvas.Children)
 			{
 				if (child is not Avalonia.Controls.Shapes.Line)
-                    child.Opacity = searchTB.Text == "" ? 1 : 0.25;
+					child.Opacity = searchTB.Text == "" ? 1 : 0.25;
 
 				if (searchTB.Text != "")
 					if (child is Widget w)
@@ -75,17 +75,17 @@ namespace Visualizer
 						}
 					}
 
-                if (child is ArrowLineNew line)
-                {
-                    if (line.ToBoxUI.ID.ToString() == searchTB.Text || line.FromBoxUI.ID.ToString() == searchTB.Text)
-                    {
-                        line.Opacity = 1;
-                    }
-                }
-            }
+				if (child is ArrowLineNew line)
+				{
+					if (line.ToBoxUI.ID.ToString() == searchTB.Text || line.FromBoxUI.ID.ToString() == searchTB.Text)
+					{
+						line.Opacity = 1;
+					}
+				}
+			}
 		}
 
-        private async void Window_Loaded(object sender, RoutedEventArgs e)
+		private async void Window_Loaded(object sender, RoutedEventArgs e)
 		{
 			try
 			{
@@ -139,6 +139,29 @@ namespace Visualizer
 
 						return b;
 					}*/
+
+					List<string> foundHandleIDs = [];
+					var handleIDs = jsonData.Descendants().OfType<JProperty>().Where(a => a.Name.ToString() == "HandleId");
+					foreach (var handleID in handleIDs)
+					{
+						foundHandleIDs.Add(handleID.Value.ToString());
+					}
+					var qs = foundHandleIDs.GroupBy(x => x)
+						.Select(x => new
+						{
+							Count = x.Count(),
+							Name = x.Key
+						})
+						.OrderByDescending(x => x.Count);
+					foreach (var q in qs)
+					{
+						if (q.Count > 1)
+						{
+							var t = "Duplicate HandleID: " + q.Name + " (" + q.Count + "x)";
+							Console.WriteLine(t);
+							HandleDebug(t);
+						}
+					}
 
 					if (fileName.EndsWith(".scene.json"))
 					{
@@ -697,18 +720,18 @@ namespace Visualizer
 								var p = Items[sub.DestinationID];
 								{
 									for (int j = 0; j < p.Inputs.Count; j++)
-                                    {
-                                        if (!isQuest)
-                                        {
-                                            var ord = int.Parse(sub.Ordinal);
-                                            if (p.Name == "scnHubNode" && ord > p.HighestOrdinal)
-                                            {
-                                                p.Inputs.Add(new() { InputName = "In", Name = "0", Ordinal = sub.Ordinal });
-                                                p.HighestOrdinal++;
-                                            }
-                                        }
+									{
+										if (!isQuest)
+										{
+											var ord = int.Parse(sub.Ordinal);
+											if ((p.Name == "scnHubNode" || p.Name == "scnXorNode") && ord > p.HighestOrdinal)
+											{
+												p.Inputs.Add(new() { InputName = "In", Name = "0", Ordinal = sub.Ordinal });
+												p.HighestOrdinal++;
+											}
+										}
 
-                                        if ((!isQuest && sub.Name == p.Inputs[j].Name && sub.Ordinal == p.Inputs[j].Ordinal) || (isQuest && sub.HandleID == p.Inputs[j].HandleID))
+										if ((!isQuest && sub.Name == p.Inputs[j].Name && sub.Ordinal == p.Inputs[j].Ordinal) || (isQuest && sub.HandleID == p.Inputs[j].HandleID))
 										{
 											p.Inputs[j].IsUsed = true;
 										}
@@ -747,7 +770,7 @@ namespace Visualizer
 							if (item.Name == "scnStartNode" || item.Name == "questInputNodeDefinition") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#FF076C00"));
 							if (item.Name == "scnEndNode" || item.Name == "questOutputNodeDefinition") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#81FF0004"));
 
-                            w.ZIndex = 10;
+							w.ZIndex = 10;
 							canvas.Children.Add(w);
 							Canvas.SetLeft(w, xs);
 							Canvas.SetTop(w, y);
@@ -866,8 +889,8 @@ namespace Visualizer
 								{
 									var p = Items[sub.DestinationID];
 									if (p.Draw)
-                                    {
-                                        for (int j = 0; j < p.Inputs.Count; j++)
+									{
+										for (int j = 0; j < p.Inputs.Count; j++)
 										{
 											if (
 												//(!isQuest && sub.Value.Ordinal == p.Inputs[j].Ins || (sub.Value.Name == "0" && p.Inputs[j].Ins == "gen_in") || (sub.Value.Name == "1" && p.Inputs[j].Ins == "gen_cut")) ||
@@ -897,20 +920,20 @@ namespace Visualizer
 												if (selClr >= linesColors.Count)
 													selClr = 0;
 											}
-                                        }
+										}
 
-                                        if (!isQuest)
-                                        {
-                                            if (int.Parse(sub.Name) > p.HighestName || int.Parse(sub.Ordinal) > p.HighestOrdinal)
-                                            {
-                                                var t = "Bad connection: " + sub.SourceID + " > " + sub.DestinationID;
-                                                Console.WriteLine(t);
-                                                HandleDebug(t);
-                                            }
-                                        }
-                                    }
+										if (!isQuest)
+										{
+											if (int.Parse(sub.Name) > p.HighestName || int.Parse(sub.Ordinal) > p.HighestOrdinal)
+											{
+												var t = "Bad connection: " + sub.SourceID + " > " + sub.DestinationID;
+												Console.WriteLine(t);
+												HandleDebug(t);
+											}
+										}
+									}
 
-                                    /*var p = Items[sub];
+									/*var p = Items[sub];
 									if (p.Draw)
 									{
 										ArrowLineNew l = new()
@@ -983,99 +1006,99 @@ namespace Visualizer
 			}
 		}
 
-        public static string GetOutputsNames(string nodeType, int index)
-        {
-            var name = "";
+		public static string GetOutputsNames(string nodeType, int index)
+		{
+			var name = "";
 
-            if (nodeType == "scnChoiceNode")
-            {
-                if (index == 0) name = "Option";
-                if (index == 1) name = "AnyOption";
-                if (index == 2) name = "Immediate";
-                if (index == 3) name = "CancelFwd";
-                if (index == 4) name = "NoOption";
-                if (index == 5) name = "WhenDisplayed";
-                if (index == 6) name = "Reminder";
-            }
-            else if (nodeType == "scnSectionNode")
-            {
-                if (index == 0) name = "Out";
-                if (index == 1) name = "CancelForward";
-                //if (index == 2) name = "TransmitSignal";
-                //if (index == 3) name = "StopWork";
-            }
-            else if (nodeType == "scnStartNode")
-            {
-                if (index == 0) name = "Out";
-            }
-            else if (nodeType == "scnRewindableSectionNode")
-            {
-                if (index == 0) name = "CancelFwd";
-                if (index == 1) name = "TransmitSignal";
-            }
-            else if (nodeType == "scnCutControlNode")
-            {
-                if (index == 0) name = "Out";
-                if (index == 1) name = "CutSource";
-            }
-            else
-                if (index == 0) name = "Out";
+			if (nodeType == "scnChoiceNode")
+			{
+				if (index == 0) name = "Option";
+				if (index == 1) name = "AnyOption";
+				if (index == 2) name = "Immediate";
+				if (index == 3) name = "CancelFwd";
+				if (index == 4) name = "NoOption";
+				if (index == 5) name = "WhenDisplayed";
+				if (index == 6) name = "Reminder";
+			}
+			else if (nodeType == "scnSectionNode")
+			{
+				if (index == 0) name = "Out";
+				if (index == 1) name = "CancelForward";
+				//if (index == 2) name = "TransmitSignal";
+				//if (index == 3) name = "StopWork";
+			}
+			else if (nodeType == "scnStartNode")
+			{
+				if (index == 0) name = "Out";
+			}
+			else if (nodeType == "scnRewindableSectionNode")
+			{
+				if (index == 0) name = "CancelFwd";
+				if (index == 1) name = "TransmitSignal";
+			}
+			else if (nodeType == "scnCutControlNode")
+			{
+				if (index == 0) name = "Out";
+				if (index == 1) name = "CutSource";
+			}
+			else
+				if (index == 0) name = "Out";
 
-            return name != "" ? name + " " : "";
-        }
+			return name != "" ? name + " " : "";
+		}
 
-        public static List<ItemInput> GetInputsNames(string nodeType, int inputVarCount = 1)
-        {
-            List<ItemInput> names = [];
+		public static List<ItemInput> GetInputsNames(string nodeType, int inputVarCount = 1)
+		{
+			List<ItemInput> names = [];
 
-            if (nodeType == "scnChoiceNode")
-            {
-                names.Add(new() { InputName = "In", Name = "0", Ordinal = "0" });
-                names.Add(new() { InputName = "Cancel", Name = "1", Ordinal = "0" });
-                names.Add(new() { InputName = "ReactivateGroup", Name = "2", Ordinal = "0" });
-                names.Add(new() { InputName = "TimeLimitedFinish", Name = "3", Ordinal = "0" });
-            }
-            else if (nodeType == "scnEndNode")
-            {
-                names.Add(new() { InputName = "In", Name = "0", Ordinal = "0" });
-            }
-            else if (nodeType == "scnStartNode")
-            {
-            }
-            else if (nodeType == "scnRewindableSectionNode")
-            {
-                names.Add(new() { InputName = "In", Name = "0", Ordinal = "0" });
-                names.Add(new() { InputName = "Cancel", Name = "1", Ordinal = "0" });
-                names.Add(new() { InputName = "Pause", Name = "2", Ordinal = "0" });
-                names.Add(new() { InputName = "ForwardNormal", Name = "3", Ordinal = "0" });
-                names.Add(new() { InputName = "ForwardSlow", Name = "4", Ordinal = "0" });
-                names.Add(new() { InputName = "ForwardFast", Name = "5", Ordinal = "0" });
-                names.Add(new() { InputName = "BackwardNormal", Name = "6", Ordinal = "0" });
-                names.Add(new() { InputName = "BackwardSlow", Name = "7", Ordinal = "0" });
-                names.Add(new() { InputName = "BackwardFast", Name = "8", Ordinal = "0" });
-                names.Add(new() { InputName = "ForwardVeryFast", Name = "9", Ordinal = "0" });
-                names.Add(new() { InputName = "BackwardVeryFast", Name = "10", Ordinal = "0" });
-            }
-            else if (nodeType == "scnCutControlNode")
-            {
-                names.Add(new() { InputName = "In", Name = "0", Ordinal = "0" });
-            }
-            else if (nodeType == "scnAndNode")
-            {
-                for (int i = 0; i < inputVarCount; i++)
-                    names.Add(new() { InputName = "In", Name = "0", Ordinal = i.ToString() });
-                names.Add(new() { InputName = "Cancel", Name = "1", Ordinal = "0" });
-            }
-            else
-            {
-                names.Add(new() { InputName = "In", Name = "0", Ordinal = "0" });
-                names.Add(new() { InputName = "Cancel", Name = "1", Ordinal = "0" });
-            }
+			if (nodeType == "scnChoiceNode")
+			{
+				names.Add(new() { InputName = "In", Name = "0", Ordinal = "0" });
+				names.Add(new() { InputName = "Cancel", Name = "1", Ordinal = "0" });
+				names.Add(new() { InputName = "ReactivateGroup", Name = "2", Ordinal = "0" });
+				names.Add(new() { InputName = "TimeLimitedFinish", Name = "3", Ordinal = "0" });
+			}
+			else if (nodeType == "scnEndNode")
+			{
+				names.Add(new() { InputName = "In", Name = "0", Ordinal = "0" });
+			}
+			else if (nodeType == "scnStartNode")
+			{
+			}
+			else if (nodeType == "scnRewindableSectionNode")
+			{
+				names.Add(new() { InputName = "In", Name = "0", Ordinal = "0" });
+				names.Add(new() { InputName = "Cancel", Name = "1", Ordinal = "0" });
+				names.Add(new() { InputName = "Pause", Name = "2", Ordinal = "0" });
+				names.Add(new() { InputName = "ForwardNormal", Name = "3", Ordinal = "0" });
+				names.Add(new() { InputName = "ForwardSlow", Name = "4", Ordinal = "0" });
+				names.Add(new() { InputName = "ForwardFast", Name = "5", Ordinal = "0" });
+				names.Add(new() { InputName = "BackwardNormal", Name = "6", Ordinal = "0" });
+				names.Add(new() { InputName = "BackwardSlow", Name = "7", Ordinal = "0" });
+				names.Add(new() { InputName = "BackwardFast", Name = "8", Ordinal = "0" });
+				names.Add(new() { InputName = "ForwardVeryFast", Name = "9", Ordinal = "0" });
+				names.Add(new() { InputName = "BackwardVeryFast", Name = "10", Ordinal = "0" });
+			}
+			else if (nodeType == "scnCutControlNode")
+			{
+				names.Add(new() { InputName = "In", Name = "0", Ordinal = "0" });
+			}
+			else if (nodeType == "scnAndNode")
+			{
+				for (int i = 0; i < inputVarCount; i++)
+					names.Add(new() { InputName = "In", Name = "0", Ordinal = i.ToString() });
+				names.Add(new() { InputName = "Cancel", Name = "1", Ordinal = "0" });
+			}
+			else
+			{
+				names.Add(new() { InputName = "In", Name = "0", Ordinal = "0" });
+				names.Add(new() { InputName = "Cancel", Name = "1", Ordinal = "0" });
+			}
 
-            return names;
-        }
+			return names;
+		}
 
-        List<Color> linesColors = new();
+		List<Color> linesColors = new();
 
 		private void AddColors()
 		{
@@ -1180,11 +1203,11 @@ namespace Visualizer
 
 		public Dictionary<string, string> Params = new();
 
-        public int HighestName { get; set; }
+		public int HighestName { get; set; }
 
-        public int HighestOrdinal { get; set; }
+		public int HighestOrdinal { get; set; }
 
-        public int HasInput(string name, string ordinal)
+		public int HasInput(string name, string ordinal)
 		{
 			int uiIndex = 0;
 
@@ -1222,12 +1245,12 @@ namespace Visualizer
 	}
 
 	class ItemConnector
-    {
-        public string SourceID { get; set; }
+	{
+		public string SourceID { get; set; }
 
-        public string DestinationID { get; set; }
+		public string DestinationID { get; set; }
 
-        public string Name { get; set; }
+		public string Name { get; set; }
 
 		public string Ordinal { get; set; }
 

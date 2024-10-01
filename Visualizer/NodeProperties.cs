@@ -1090,7 +1090,7 @@ namespace Visualizer
                 if (nodeType2 == "questSectionNode_ConditionType")
                 {
                     details[logicalCondIndex + "Scene File"] = condSceneCasted.SelectToken("sceneFile.DepotPath.$value").Value<string>();
-                    details[logicalCondIndex + "Scene Version"] = condSceneCasted.SelectToken("sceneVersion").Value<string>();
+                    details[logicalCondIndex + "Scene Version"] = condSceneCasted.SelectToken("SceneVersion").Value<string>();
                     details[logicalCondIndex + "Section Name"] = condSceneCasted.SelectToken("sectionName.$value").Value<string>();
                     details[logicalCondIndex + "Cond Type"] = condSceneCasted.SelectToken("type").Value<string>();
                 }
