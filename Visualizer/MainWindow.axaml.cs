@@ -89,15 +89,28 @@ namespace Visualizer
 		{
 			try
 			{
-				FilePickerOpenOptions opts = new();
-				opts.AllowMultiple = false;
-				opts.FileTypeFilter = new FilePickerFileType[] { new("Json") { Patterns = new[] { "*.scene.json", "*.questphase.json" } } };
-				opts.Title = "Select json";
+				string fileName = "";
 
-				var d = await StorageProvider.OpenFilePickerAsync(opts);
-				if (d != null && d.Count > 0)
+				var args = Environment.GetCommandLineArgs();
+				if (args.Length > 1)
+					fileName = args[1];
+
+				if (fileName == "")
 				{
-					var fileName = d[0].Path.LocalPath;
+					FilePickerOpenOptions opts = new();
+					opts.AllowMultiple = false;
+					opts.FileTypeFilter = new FilePickerFileType[] { new("Json") { Patterns = new[] { "*.scene.json", "*.questphase.json" } } };
+					opts.Title = "Select json";
+
+					var d = await StorageProvider.OpenFilePickerAsync(opts);
+					if (d != null && d.Count > 0)
+						fileName = d[0].Path.LocalPath;
+					else
+						Environment.Exit(0);
+				}
+
+				if (fileName != "")
+				{
 					Title = Path.GetFileName(fileName) + " - " + fileName;
 
 					var text = File.ReadAllText(fileName);
@@ -252,7 +265,7 @@ namespace Visualizer
 
 							var rootChunk = jsonData.SelectToken("Data.RootChunk");
 
-							Dictionary<string, string> prms = [];
+							NodeProps prms = new();
 							if (nodeType == "scnQuestNode")
 								prms = NodeProperties.GetPropertiesForQuestNode(it.SelectToken("questNode.Data"), rootChunk);
 							else
@@ -460,7 +473,7 @@ namespace Visualizer
 							List<ItemOutput> itemOuts = new();
 							List<ItemInput> itemInps = new();
 
-							Dictionary<string, string> prms = NodeProperties.GetPropertiesForQuestNode(it);
+							NodeProps prms = NodeProperties.GetPropertiesForQuestNode(it);
 
 							foreach (var socket in it.SelectToken("sockets"))
 							{
@@ -793,15 +806,37 @@ namespace Visualizer
 								w.listOutputs.Children.Add(g);
 							}
 
-							foreach (var p in item.Params)
+							List<StackPanel> drawParams(NodeProps props)
 							{
-								var sp = new StackPanel();
-								sp.Orientation = Avalonia.Layout.Orientation.Horizontal;
-								sp.Children.Add(new TextBlock() { Text = p.Key, Foreground = new SolidColorBrush(Color.Parse("#999999")), Margin = new(0, 0, 4, 0) });
-								sp.Children.Add(new TextBlock() { Text = p.Value, Foreground = Brushes.White });
-								w.list.Children.Add(sp);
+								List<StackPanel> l = new();
+
+								foreach (var p in props.GetData())
+								{
+									var sp = new StackPanel();
+									sp.Orientation = Avalonia.Layout.Orientation.Horizontal;
+									sp.Children.Add(new Label() { Content = p.Name, Foreground = new SolidColorBrush(Color.Parse("#999999")), Margin = new(0, 0, 4, 0), Padding = new(0) });
+
+									var valTB = new Label() { Content = p.Value, Foreground = Brushes.White, Padding = new(0) };
+
+									if (p.SubValues != null)
+									{
+										var spSub = new StackPanel();
+										spSub.Orientation = Avalonia.Layout.Orientation.Vertical;
+										spSub.Children.Add(valTB);
+										spSub.Children.AddRange(drawParams(p.SubValues));
+										sp.Children.Add(spSub);
+									}
+									else
+										sp.Children.Add(valTB);
+
+									l.Add(sp);
+								}
+
+								return l;
 							}
-							if (item.Params.Count > 0)
+							w.list.Children.AddRange(drawParams(item.Params));
+
+							if (item.Params.Count() > 0)
 								w.list.Margin = new(5);
 
 							item.Draw = true;
@@ -837,11 +872,16 @@ namespace Visualizer
 							}
 							var tmp = Math.Max(tmpI, tmpO);
 							thisH += tmp;
-							foreach (var p in item.Params)
+							void incTmp(NodeProps props)
 							{
-								tmp += 17;
-								thisH += 17;
+								foreach (var p in props.GetData())
+								{
+									tmp += 17;
+									thisH += 17;
+									if (p.SubValues != null) incTmp(p.SubValues);
+								}
 							}
+							incTmp(item.Params);
 
 							if (childH < tmp + 100)
 								y = y - childH + tmp;
@@ -1201,7 +1241,7 @@ namespace Visualizer
 
 		public List<ItemInput> Inputs = new();
 
-		public Dictionary<string, string> Params = new();
+		public NodeProps Params = new();
 
 		public int HighestName { get; set; }
 

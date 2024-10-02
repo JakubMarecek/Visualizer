@@ -3,14 +3,81 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 
 namespace Visualizer
 {
+    public class NodeProps
+    {
+        Dictionary<string, string> DictVals { set; get; } = [];
+
+        Dictionary<string, NodeProps> SubValues { set; get; } = [];
+
+        public string this[string key]
+        {
+            get
+            {
+                return DictVals[key];
+            }
+            set
+            {
+                DictVals[key] = value;
+            }
+        }
+
+        public NodeProps this[string key, string sub]
+        {
+            get
+            {
+                return null;
+            }
+            set
+            {
+                DictVals[key] = sub;
+
+                SubValues[key] = value;
+            }
+        }
+
+        public void AddRange(NodeProps props)
+        {
+            DictVals.AddRange(props.DictVals);
+            SubValues.AddRange(props.SubValues);
+        }
+
+        public int Count()
+        {
+            return DictVals.Count;
+        }
+
+        public List<NodePropItem> GetData()
+        {
+            List<NodePropItem> outData = [];
+
+            foreach (var kp in DictVals)
+            {
+                SubValues.TryGetValue(kp.Key, out var subs);
+                outData.Add(new() { Name = kp.Key, Value = kp.Value, SubValues = subs });
+            }
+
+            return outData;
+        }
+    }
+
+    public struct NodePropItem
+    {
+        public string Name { set; get; }
+
+        public string Value { set; get; }
+
+        public NodeProps SubValues { set; get; }
+    }
+
     public class NodeProperties
     {
-        public static Dictionary<string, string> GetPropertiesForQuestNode(JToken node, JToken scnSceneResource = null)
+        public static NodeProps GetPropertiesForQuestNode(JToken node, JToken scnSceneResource = null)
         {
-            Dictionary<string, string> details = new();
+            NodeProps details = new();
 
             string nodeType = node.SelectToken("$type").Value<string>();
 
@@ -137,6 +204,12 @@ namespace Visualizer
                 {
                     details["Preset"] = sceneManagerNodeCasted.SelectToken("preset").Value<string>();
                 }
+                if (nodeType2 == "questToggleEventExecutionTag_NodeType")
+                {
+                    details["Event Execution Tag"] = sceneManagerNodeCasted.SelectToken("eventExecutionTag.$value").Value<string>();
+                    details["Mute"] = sceneManagerNodeCasted.SelectToken("mute").Value<string>() == "1" ? "True" : "False";
+                    details["Scene File"] = sceneManagerNodeCasted.SelectToken("sceneFile.DepotPath.$value").Value<string>();
+                }
             }
             else if (nodeType == "questTimeManagerNodeDefinition")
             {
@@ -232,24 +305,26 @@ namespace Visualizer
                 string nodeType2 = node.SelectToken("event.Data.$type").Value<string>();
 
                 details["Component Name"] = node.SelectToken("componentName.$value").Value<string>();
-                details["Event"] = nodeType2;
+
+                NodeProps subProps = new();
 
                 if (nodeType2 == "DisableBraindanceActions")
                 {
-                    details.AddRange(ParseBDMask(node.SelectToken("event.Data.actionMask")));
+                    subProps.AddRange(ParseBDMask(node.SelectToken("event.Data.actionMask")));
                 }
                 if (nodeType2 == "EnableBraindanceActions")
                 {
-                    details.AddRange(ParseBDMask(node.SelectToken("event.Data.actionMask")));
+                    subProps.AddRange(ParseBDMask(node.SelectToken("event.Data.actionMask")));
                 }
                 if (nodeType2 == "gameActionEvent")
                 {
-                    details["- Event Action"] = node.SelectToken("event.Data.eventAction.$value").Value<string>();
-                    details["- Internal Event"] = node.SelectToken("event.Data.internalEvent.Data.$type")?.Value<string>();
-                    details["- Name"] = node.SelectToken("event.Data.name.$value").Value<string>();
-                    details["- Time To Live"] = node.SelectToken("event.Data.timeToLive").Value<string>();
+                    subProps["Event Action"] = node.SelectToken("event.Data.eventAction.$value").Value<string>();
+                    subProps["Internal Event"] = node.SelectToken("event.Data.internalEvent.Data.$type")?.Value<string>();
+                    subProps["Name"] = node.SelectToken("event.Data.name.$value").Value<string>();
+                    subProps["Time To Live"] = node.SelectToken("event.Data.timeToLive").Value<string>();
                 }
 
+                details["Event", nodeType2] = subProps;
                 details["Is Object Player"] = node.SelectToken("isObjectPlayer").Value<string>() == "1" ? "True" : "False";
                 details["Manager Name"] = node.SelectToken("managerName").Value<string>();
                 details["Object Ref"] = ParseGameEntityReference(node.SelectToken("objectRef"));
@@ -838,13 +913,29 @@ namespace Visualizer
                     details["Destination Ref"] = GetNameFromUniversalRef(vehicleNodeCasted.SelectToken("params.destinationRef.Data"));
                 }
             }
+            else if (nodeType == "questCheckpointNodeDefinition")
+            {
+                var additionalEndGameRewardsTweak = "";
+                foreach (var p in node.SelectToken("additionalEndGameRewardsTweak"))
+                {
+                    additionalEndGameRewardsTweak += (additionalEndGameRewardsTweak != "" ? ", " : "") + p.SelectToken("$value").Value<string>();
+                }
+                details["Additional End Game Rewards Tweak"] = additionalEndGameRewardsTweak;
+
+                details["Debug String"] = node.SelectToken("debugString").Value<string>();
+                details["End Game Save"] = node.SelectToken("endGameSave").Value<string>() == "1" ? "True" : "False";
+                details["Ignore Save Locks"] = node.SelectToken("ignoreSaveLocks").Value<string>() == "1" ? "True" : "False";
+                details["Point Of No Return"] = node.SelectToken("pointOfNoReturn").Value<string>() == "1" ? "True" : "False";
+                details["Retry On Failure"] = node.SelectToken("retryOnFailure").Value<string>() == "1" ? "True" : "False";
+                details["Save Lock"] = node.SelectToken("saveLock").Value<string>() == "1" ? "True" : "False";
+            }
 
             return details;
         }
 
-        public static Dictionary<string, string> GetPropertiesForSectionNode(JToken node, JToken scnSceneResource = null)
+        public static NodeProps GetPropertiesForSectionNode(JToken node, JToken scnSceneResource = null)
         {
-            Dictionary<string, string> details = new();
+            NodeProps details = new();
 
             string nodeType = node.SelectToken("$type").Value<string>();
 
@@ -870,14 +961,32 @@ namespace Visualizer
                 int counter = 1;
                 foreach (var eventClass in events)
                 {
+                    NodeProps subProps = new();
                     string evName = eventClass.SelectToken("Data.$type").Value<string>();
 
                     if (evName == "scneventsSocket")
                     {
                         evName += " - Name: " + eventClass.SelectToken("Data.osockStamp.name").Value<string>() + ", Ordinal: " + eventClass.SelectToken("Data.osockStamp.ordinal").Value<string>();
                     }
+                    else if (evName == "scnPlaySkAnimEvent")
+                    {
+                        subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performer.id").Value<string>(), scnSceneResource);
 
-                    details["#" + counter.ToString() + " " + eventClass.SelectToken("Data.startTime").Value<string>() + "ms"] = evName;
+                        var animType = eventClass.SelectToken("Data.animName.Data.type").Value<string>();
+                        if (animType == "direct")
+                            subProps["Anim"] = eventClass?.SelectToken("Data.animName.Data.unk1[0].$value")?.Value<string>();
+                    }
+                    else if (evName == "scnAudioEvent")
+                    {
+                        subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performer.id").Value<string>(), scnSceneResource);
+                        subProps["Event"] = eventClass.SelectToken("Data.audioEventName.$value").Value<string>();
+                    }
+                    else if (evName == "scnDialogLineEvent")
+                    {
+                        evName += " - " + GetScreenplayItem(eventClass.SelectToken("Data.screenplayLineId.id").Value<string>(), scnSceneResource);
+                    }
+
+                    details["#" + counter.ToString() + " " + eventClass.SelectToken("Data.startTime").Value<string>() + "ms", evName] = subProps;
                     counter++;
                 }
             }
@@ -921,9 +1030,9 @@ namespace Visualizer
             return details;
         }
 
-        private static Dictionary<string, string> GetPropertiesForConditions(JToken node, string logicalCondIndex = "")
+        private static NodeProps GetPropertiesForConditions(JToken node, string logicalCondIndex = "")
         {
-            Dictionary<string, string> details = new();
+            NodeProps details = new();
 
             string nodeType = node.SelectToken("$type").Value<string>();
 
@@ -1132,6 +1241,44 @@ namespace Visualizer
             return details;
         }
 
+        private static string GetScreenplayItem(string screenplayItemID, JToken scnSceneResource)
+        {
+            string retVal = "ItemID: " + screenplayItemID + ", ";
+
+            if (scnSceneResource != null)
+            {
+                foreach (var screenplayStoreLines in scnSceneResource.SelectToken("screenplayStore.lines"))
+                {
+                    if (screenplayStoreLines.SelectToken("itemId.id").Value<string>() == screenplayItemID)
+                    {
+                        retVal += "LocStringID: " + screenplayStoreLines.SelectToken("locstringId.ruid").Value<string>();
+                        break;
+                    }
+                }
+            }
+
+            return retVal;
+        }
+
+        private static string GetPerformer(string performerID, JToken scnSceneResource)
+        {
+            string retVal = "(" + performerID + ") ";
+
+            if (scnSceneResource != null)
+            {
+                foreach (var performersDebugSymbols in scnSceneResource.SelectToken("debugSymbols.performersDebugSymbols"))
+                {
+                    if (performersDebugSymbols.SelectToken("performerId.id").Value<string>() == performerID)
+                    {
+                        retVal += ParseGameEntityReference(performersDebugSymbols.SelectToken("entityRef"));
+                        break;
+                    }
+                }
+            }
+
+            return retVal;
+        }
+
         private static string ParseVector(JToken vec)
         {
             if (vec == null)
@@ -1167,15 +1314,15 @@ namespace Visualizer
             return "Alpha: " + alpha + ", Blue: " + blue + ", Green: " + green + ", Red: " + red;
         }
 
-        private static Dictionary<string, string> ParseBDMask(JToken mask)
+        private static NodeProps ParseBDMask(JToken mask)
         {
-            Dictionary<string, string> details = new();
-            details[" - Camera Toggle Action"] = mask.SelectToken("cameraToggleAction").Value<string>() == "1" ? "True" : "False";
-            details[" - Pause Action"] = mask.SelectToken("pauseAction").Value<string>() == "1" ? "True" : "False";
-            details[" - Play Backward Action"] = mask.SelectToken("playBackwardAction").Value<string>() == "1" ? "True" : "False";
-            details[" - Play Forward Action"] = mask.SelectToken("playForwardAction").Value<string>() == "1" ? "True" : "False";
-            details[" - Restart Action"] = mask.SelectToken("restartAction").Value<string>() == "1" ? "True" : "False";
-            details[" - Switch Layer Action"] = mask.SelectToken("switchLayerAction").Value<string>() == "1" ? "True" : "False";
+            NodeProps details = new();
+            details["Camera Toggle Action"] = mask.SelectToken("cameraToggleAction").Value<string>() == "1" ? "True" : "False";
+            details["Pause Action"] = mask.SelectToken("pauseAction").Value<string>() == "1" ? "True" : "False";
+            details["Play Backward Action"] = mask.SelectToken("playBackwardAction").Value<string>() == "1" ? "True" : "False";
+            details["Play Forward Action"] = mask.SelectToken("playForwardAction").Value<string>() == "1" ? "True" : "False";
+            details["Restart Action"] = mask.SelectToken("restartAction").Value<string>() == "1" ? "True" : "False";
+            details["Switch Layer Action"] = mask.SelectToken("switchLayerAction").Value<string>() == "1" ? "True" : "False";
             return details;
         }
 
@@ -1192,6 +1339,7 @@ namespace Visualizer
                     if (workspotInstance.SelectToken("workspotInstanceId.id").Value<string>() == workspotID)
                     {
                         dataID = workspotInstance.SelectToken("dataId.id").Value<string>();
+                        break;
                     }
                 }
 
@@ -1206,6 +1354,7 @@ namespace Visualizer
                             if (workspotData.SelectToken("dataId.id").Value<string>() == dataID)
                             {
                                 retVal = Path.GetFileName(workspotData.SelectToken("workspotResource.DepotPath.$value").Value<string>());
+                                break;
                             }
                         }
                     }
@@ -1215,9 +1364,9 @@ namespace Visualizer
             return retVal;
         }
 
-        private static Dictionary<string, string> ParseJournalPath(JToken gameJournalPath, string possiblePrefix = "")
+        private static NodeProps ParseJournalPath(JToken gameJournalPath, string possiblePrefix = "")
         {
-            Dictionary<string, string> details = new();
+            NodeProps details = new();
             details[possiblePrefix + "Path Class Name"] = gameJournalPath.SelectToken("className.$value")?.Value<string>();
             details[possiblePrefix + "Path File Entry Index"] = gameJournalPath.SelectToken("fileEntryIndex")?.Value<string>();
             details[possiblePrefix + "Path Real Path"] = gameJournalPath.SelectToken("realPath")?.Value<string>();
