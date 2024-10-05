@@ -1168,6 +1168,31 @@ namespace Visualizer
                     details[logicalCondIndex + "Use Frustrum Check"] = condSystemCasted.SelectToken("useFrustrumCheck").Value<string>() == "1" ? "True" : "False";
                     details[logicalCondIndex + "Zoomed"] = condSystemCasted.SelectToken("zoomed").Value<string>() == "1" ? "True" : "False";
                 }
+                if (nodeType2 == "questInputAction_ConditionType")
+                {
+                    details[logicalCondIndex + "Any Input Action"] = condSystemCasted.SelectToken("anyInputAction").Value<string>() == "1" ? "True" : "False";
+                    details[logicalCondIndex + "Axis Action"] = condSystemCasted.SelectToken("axisAction").Value<string>() == "1" ? "True" : "False";
+                    details[logicalCondIndex + "Check If Button Already Pressed"] = condSystemCasted.SelectToken("checkIfButtonAlreadyPressed").Value<string>() == "1" ? "True" : "False";
+                    details[logicalCondIndex + "Input Action"] = condSystemCasted.SelectToken("inputAction.$value").Value<string>();
+                    details[logicalCondIndex + "Value Less Than"] = condSystemCasted.SelectToken("valueLessThan").Value<string>();
+                    details[logicalCondIndex + "Value More Than"] = condSystemCasted.SelectToken("valueMoreThan").Value<string>();
+                }
+                if (nodeType2 == "questPrereq_ConditionType")
+                {
+                    details[logicalCondIndex + "Is Object Player"] = condSystemCasted.SelectToken("isObjectPlayer").Value<string>() == "1" ? "True" : "False";
+                    details[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condSystemCasted.SelectToken("objectRef"));
+
+                    var prereq = condSystemCasted.SelectToken("prereq.Data");
+                    var type = prereq.SelectToken("$type").Value<string>();
+
+                    details[logicalCondIndex + "Prereq"] = type;
+
+                    if (type == "DialogueChoiceHubPrereq")
+                        details[logicalCondIndex + "Is Choice Hub Active"] = prereq.SelectToken("isChoiceHubActive").Value<string>();
+
+                    if (type == "PlayerControlsDevicePrereq")
+                        details[logicalCondIndex + "Inverse"] = prereq.SelectToken("inverse").Value<string>() == "1" ? "True" : "False";
+                }
             }
             else if (nodeType == "questDistanceCondition")
             {
