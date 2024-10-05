@@ -844,9 +844,9 @@ namespace Visualizer
 								{
 									var sp = new StackPanel();
 									sp.Orientation = Avalonia.Layout.Orientation.Horizontal;
-									sp.Children.Add(new Label() { Content = p.Name, Foreground = new SolidColorBrush(Color.Parse("#999999")), Margin = new(0, 0, 4, 0), Padding = new(0) });
+									sp.Children.Add(new Label() { Content = p.Name.Replace("_", "__"), Foreground = new SolidColorBrush(Color.Parse("#999999")), Margin = new(0, 0, 4, 0), Padding = new(0) });
 
-									var valTB = new Label() { Content = p.Value, Foreground = Brushes.White, Padding = new(0) };
+									var valTB = new Label() { Content = p.Value.Replace("_", "__"), Foreground = Brushes.White, Padding = new(0) };
 
 									if (p.SubValues != null)
 									{
