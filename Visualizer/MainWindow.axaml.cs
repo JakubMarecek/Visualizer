@@ -198,6 +198,19 @@ namespace Visualizer
 							int id = int.Parse(idObj.ToString());
 							string nodeType = it.SelectToken("$type").ToString();
 
+							List<int> outputWeights = [];
+							int outputWeightsTotal = 0;
+							if (nodeType == "scnRandomizerNode")
+							{
+								var a = it.SelectToken("weights.Elements");
+								foreach (var aa in a)
+								{
+									var ww = aa.ToObject<int>();
+									outputWeightsTotal += ww;
+									outputWeights.Add(ww);
+								}
+							}
+
 							List<ItemOutput> itemOuts = new();
 
 							var outScksMapp = it.SelectToken("osockMappings");
@@ -220,9 +233,11 @@ namespace Visualizer
 									var outputName = "";
 									if (outScksMapp == null) outputName = GetOutputsNames(nodeType, sck.SelectToken("stamp.name").ToObject<int>());
 
+									var perc = outputWeights.Count > 0 ? (" " + ((float)outputWeights[itemOuts.Count] / (float)outputWeightsTotal * 100).ToString("#.##") + "%") : "";
+
 									itemOuts.Add(new()
 									{
-										OutputName = (outScksMapp != null ? outScksMapp[itemOuts.Count].SelectToken("$value").ToString() : "") + outputName,
+										OutputName = (outScksMapp != null ? outScksMapp[itemOuts.Count].SelectToken("$value").ToString() : "") + outputName + perc,
 										Name = sck.SelectToken("stamp.name").ToString(),
 										Ordinal = sck.SelectToken("stamp.ordinal").ToString(),
 										Connections = a
@@ -473,6 +488,19 @@ namespace Visualizer
 							List<ItemOutput> itemOuts = new();
 							List<ItemInput> itemInps = new();
 
+							List<int> outputWeights = [];
+							int outputWeightsTotal = 0;
+							if (nodeType == "questRandomizerNodeDefinition")
+							{
+								var a = it.SelectToken("outputWeights");
+								foreach (var aa in a)
+								{
+									var ww = aa.ToObject<int>();
+									outputWeightsTotal += ww;
+									outputWeights.Add(ww);
+								}
+							}
+
 							NodeProps prms = NodeProperties.GetPropertiesForQuestNode(it);
 
 							foreach (var socket in it.SelectToken("sockets"))
@@ -503,9 +531,11 @@ namespace Visualizer
 											});
 									}
 
+									var perc = outputWeights.Count > 0 ? (" " + ((float)outputWeights[itemOuts.Count] / (float)outputWeightsTotal * 100).ToString("#.##") + "%") : "";
+
 									itemOuts.Add(new()
 									{
-										OutputName = socketDef.Name,
+										OutputName = socketDef.Name + perc,
 										HandleID = socketDef.HandleID,
 										Connections = c
 									});
