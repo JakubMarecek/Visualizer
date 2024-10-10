@@ -262,6 +262,12 @@ namespace Visualizer
 
         public int ToBoxSecID { set; get; }
 
+        private const int Space = 20;
+
+        private const int InBoxSpace = 27;
+
+        private const int LineBezierRound = 200;
+
         static ArrowLineNew()
         {
             AffectsMeasure<ArrowLineNew>(StretchProperty, StrokeThicknessProperty);
@@ -343,22 +349,24 @@ namespace Visualizer
             if (MakeBezierAlt)
             {
                 {
-                    double lineLen = Vector.Subtract(new Point(X2, Y2), new Point(X1, Y1)).Length;
+                    //double lineLen = Vector.Subtract(new Point(X2, Y2), new Point(X1, Y1)).Length;
 
                     BezierSegment bezierSegment1 = new BezierSegment();
-                    bezierSegment1.Point1 = new Point(X1 + 200, Y1);
-                    bezierSegment1.Point2 = new Point(X2 - 200, Y2);
-                    //bezierSegment1.Point1 = new Point(X1 + Math.Min(100, lineLen / 3), Y1);
-                    //bezierSegment1.Point2 = new Point(X2 - Math.Min(100, lineLen / 3), Y2);
-                    bezierSegment1.Point3 = new Point(X2, Y2);
+                    bezierSegment1.Point1 = new Point(X1 + LineBezierRound, Y1);
+                    bezierSegment1.Point2 = new Point(X2 - LineBezierRound, Y2);
+                    //bezierSegment1.Point1 = new Point(X1 + Math.Min(200, lineLen / 3), Y1);
+                    //bezierSegment1.Point2 = new Point(X2 - Math.Min(200, lineLen / 3), Y2);
+                    bezierSegment1.Point3 = new Point(X2 - Space, Y2);
 
                     pathfigLine.IsClosed = false;
                     pathfigLine.Segments.Add(bezierSegment1);
-                    pathfigLine.StartPoint = new Point(X1, Y1);
+                    pathfigLine.StartPoint = new Point(X1 + Space, Y1);
 
                     //pathgeo.Figures.Add(CalculateDot(pathfigLine.StartPoint));
+                    pathgeo.Figures.Add(SmallSpace(pathfigLine.StartPoint, true));
                     pathgeo.Figures.Add(pathfigLine);
-                    pathgeo.Figures.Add(CalculateArrow(bezierSegment1.Point2, bezierSegment1.Point3));
+                    pathgeo.Figures.Add(SmallSpace(bezierSegment1.Point3, false));
+                    pathgeo.Figures.Add(CalculateArrow(bezierSegment1.Point3, bezierSegment1.Point3 + new Point(InBoxSpace, 0)));
                 }
             }
             /*if (bezsegLine != null)
@@ -831,6 +839,20 @@ namespace Visualizer
             polyseg.Points.Add(new(pt.X - 1, pt.Y + 3));
 
             polyseg.Points.Add(new(pt.X - 1, pt.Y - 3));
+
+            pathfig.Segments.Add(polyseg);
+
+            return pathfig;
+        }
+
+        PathFigure SmallSpace(Point pt, bool start)
+        {
+            PathFigure pathfig = new();
+            pathfig.IsClosed = false;
+            pathfig.StartPoint = pt;
+
+            PolyLineSegment polyseg = new();
+            polyseg.Points.Add(new(pt.X - (InBoxSpace * (start ? 1 : -1)), pt.Y));
 
             pathfig.Segments.Add(polyseg);
 

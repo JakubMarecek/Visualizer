@@ -1026,6 +1026,57 @@ namespace Visualizer
                 }
                 details["Weights"] = outputWeights;
             }
+            if (nodeType == "scnChoiceNode")
+            {
+                var mode = node.SelectToken("mode").Value<string>();
+
+                details["Mode"] = mode;
+
+                if (mode == "attachToActor")
+                {
+                    details["Actor ID"] = node.SelectToken("ataParams.actorId.id").Value<string>();
+                }
+                if (mode == "attachToGameObject")
+                {
+                    details["Node Ref"] = node.SelectToken("atgoParams.nodeRef.$value").Value<string>();
+                }
+                if (mode == "attachToProp")
+                {
+                    details["Prop ID"] = node.SelectToken("atpParams.propId.id").Value<string>();
+                }
+                if (mode == "attachToScreen")
+                {
+                }
+                if (mode == "attachToWorld")
+                {
+                    details["Custom Entity Radius"] = node.SelectToken("atwParams.customEntityRadius").Value<string>() == "1" ? "True" : "False";
+                    details["Entity Orientation"] = ParseQuaternion(node.SelectToken("atwParams.entityOrientation"));
+                    details["Entity Position"] = ParseVector(node.SelectToken("atwParams.entityPosition"));
+                    details["Visualizer Style"] = node.SelectToken("atwParams.visualizerStyle").Value<string>();
+                }
+
+                details["Display Name Override"] = node.SelectToken("displayNameOverride").Value<string>();
+
+                var optionsArr = node.SelectToken("options");
+
+                int counter = 1;
+                foreach (var option in optionsArr)
+                {
+                    details["Option #" + counter + " Caption"] = option.SelectToken("caption.$value").Value<string>();
+                    details["Option #" + counter + " "] = GetScreenplayOption(option.SelectToken("screenplayOptionId.id").Value<string>(), scnSceneResource);
+
+                    counter++;
+                }
+
+                if (node.SelectToken("shapeParams.Data") != null)
+                {
+                    details["Shape Params - Activation Base Length"] = node.SelectToken("shapeParams.Data.activationBaseLength").Value<string>();
+                    details["Shape Params - Activation Height"] = node.SelectToken("shapeParams.Data.activationHeight").Value<string>();
+                    details["Shape Params - Activation Yaw Limit"] = node.SelectToken("shapeParams.Data.activationYawLimit").Value<string>();
+                    details["Shape Params - Custom Activation Range"] = node.SelectToken("shapeParams.Data.customActivationRange").Value<string>();
+                    details["Shape Params - Custom Indication Range"] = node.SelectToken("shapeParams.Data.customIndicationRange").Value<string>();
+                }
+            }
 
             return details;
         }
@@ -1168,6 +1219,31 @@ namespace Visualizer
                     details[logicalCondIndex + "Use Frustrum Check"] = condSystemCasted.SelectToken("useFrustrumCheck").Value<string>() == "1" ? "True" : "False";
                     details[logicalCondIndex + "Zoomed"] = condSystemCasted.SelectToken("zoomed").Value<string>() == "1" ? "True" : "False";
                 }
+                if (nodeType2 == "questInputAction_ConditionType")
+                {
+                    details[logicalCondIndex + "Any Input Action"] = condSystemCasted.SelectToken("anyInputAction").Value<string>() == "1" ? "True" : "False";
+                    details[logicalCondIndex + "Axis Action"] = condSystemCasted.SelectToken("axisAction").Value<string>() == "1" ? "True" : "False";
+                    details[logicalCondIndex + "Check If Button Already Pressed"] = condSystemCasted.SelectToken("checkIfButtonAlreadyPressed").Value<string>() == "1" ? "True" : "False";
+                    details[logicalCondIndex + "Input Action"] = condSystemCasted.SelectToken("inputAction.$value").Value<string>();
+                    details[logicalCondIndex + "Value Less Than"] = condSystemCasted.SelectToken("valueLessThan").Value<string>();
+                    details[logicalCondIndex + "Value More Than"] = condSystemCasted.SelectToken("valueMoreThan").Value<string>();
+                }
+                if (nodeType2 == "questPrereq_ConditionType")
+                {
+                    details[logicalCondIndex + "Is Object Player"] = condSystemCasted.SelectToken("isObjectPlayer").Value<string>() == "1" ? "True" : "False";
+                    details[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condSystemCasted.SelectToken("objectRef"));
+
+                    var prereq = condSystemCasted.SelectToken("prereq.Data");
+                    var type = prereq.SelectToken("$type").Value<string>();
+
+                    details[logicalCondIndex + "Prereq"] = type;
+
+                    if (type == "DialogueChoiceHubPrereq")
+                        details[logicalCondIndex + "Is Choice Hub Active"] = prereq.SelectToken("isChoiceHubActive").Value<string>();
+
+                    if (type == "PlayerControlsDevicePrereq")
+                        details[logicalCondIndex + "Inverse"] = prereq.SelectToken("inverse").Value<string>() == "1" ? "True" : "False";
+                }
             }
             else if (nodeType == "questDistanceCondition")
             {
@@ -1241,6 +1317,25 @@ namespace Visualizer
             return details;
         }
 
+        private static string GetScreenplayOption(string screenplayOptionID, JToken scnSceneResource)
+        {
+            string retVal = "OptionID: " + screenplayOptionID + ", ";
+
+            if (scnSceneResource != null)
+            {
+                foreach (var screenplayStoreOptions in scnSceneResource.SelectToken("screenplayStore.options"))
+                {
+                    if (screenplayStoreOptions.SelectToken("itemId.id").Value<string>() == screenplayOptionID)
+                    {
+                        retVal += "LocStringID: " + screenplayStoreOptions.SelectToken("locstringId.ruid").Value<string>();
+                        break;
+                    }
+                }
+            }
+
+            return retVal;
+        }
+
         private static string GetScreenplayItem(string screenplayItemID, JToken scnSceneResource)
         {
             string retVal = "ItemID: " + screenplayItemID + ", ";
@@ -1277,6 +1372,19 @@ namespace Visualizer
             }
 
             return retVal;
+        }
+
+        private static string ParseQuaternion(JToken vec)
+        {
+            if (vec == null)
+                return "-";
+
+            var i = vec.SelectToken("i").Value<string>();
+            var j = vec.SelectToken("j").Value<string>();
+            var k = vec.SelectToken("k").Value<string>();
+            var r = vec.SelectToken("r").Value<string>();
+
+            return "I: " + i + ", J: " + j + ", K: " + k + ", R: " + r;
         }
 
         private static string ParseVector(JToken vec)
