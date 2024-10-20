@@ -1164,13 +1164,17 @@ namespace Visualizer
             }
             else if (nodeType == "questLogicalCondition")
             {
-                details[logicalCondIndex + "Operation"] = node.SelectToken("operation").Value<string>();
+                //details[logicalCondIndex + "Operation"] = node.SelectToken("operation").Value<string>();
+
+                NodeProps subProps = new();
 
                 var conditions = node.SelectToken("conditions");
                 for (int i = 0; i < conditions.Count(); i++)
                 {
-                    details.AddRange(GetPropertiesForConditions(conditions[i].SelectToken("Data"), logicalCondIndex + "#" + i + " "));
+                    subProps.AddRange(GetPropertiesForConditions(conditions[i].SelectToken("Data"), logicalCondIndex + "#" + i + " "));
                 }
+                
+                details[logicalCondIndex + "Operation", node.SelectToken("operation").Value<string>()] = subProps;
             }
             else if (nodeType == "questCharacterCondition")
             {
