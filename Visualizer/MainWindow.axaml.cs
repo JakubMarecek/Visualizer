@@ -323,6 +323,8 @@ namespace Visualizer
 								}
 							}
 
+							//itemInps.Add(new() { InputName = "In (1026)", Name = "1026", Ordinal = "0" });
+
 							Items.Add(id.ToString(), new()
 							{
 								Outputs = itemOuts,
@@ -762,6 +764,8 @@ namespace Visualizer
 							{
 								var p = Items[sub.DestinationID];
 								{
+									bool add1026 = false;
+
 									for (int j = 0; j < p.Inputs.Count; j++)
 									{
 										if (!isQuest)
@@ -772,12 +776,25 @@ namespace Visualizer
 												p.Inputs.Add(new() { InputName = "In", Name = "0", Ordinal = sub.Ordinal });
 												p.HighestOrdinal++;
 											}
+
+											var name = int.Parse(sub.Name);
+											if (p.Name == "scnQuestNode" && name == 1026)
+											{
+												add1026 = true;
+											}
 										}
 
 										if ((!isQuest && sub.Name == p.Inputs[j].Name && sub.Ordinal == p.Inputs[j].Ordinal) || (isQuest && sub.HandleID == p.Inputs[j].HandleID))
 										{
 											p.Inputs[j].IsUsed = true;
 										}
+									}
+
+									if (add1026)
+									{
+										p.Inputs.Add(new() { InputName = "Unknown", Name = "1026", Ordinal = "0" });
+										p.Inputs[p.Inputs.Count - 1].IsUsed = true;
+										//p.HighestName++;
 									}
 								}
 							}
@@ -994,7 +1011,7 @@ namespace Visualizer
 
 										if (!isQuest)
 										{
-											if (int.Parse(sub.Name) > p.HighestName || int.Parse(sub.Ordinal) > p.HighestOrdinal)
+											if ((int.Parse(sub.Name) != 1026 && int.Parse(sub.Name) > p.HighestName) || int.Parse(sub.Ordinal) > p.HighestOrdinal)
 											{
 												var t = "Bad connection: " + sub.SourceID + " > " + sub.DestinationID;
 												Console.WriteLine(t);

@@ -611,9 +611,9 @@ namespace WpfPanAndZoom.CustomControls
             {
                 if (child is ArrowLineNew @new)
                 {
-                    if (zoom < -30)
+                    /*if (zoom < -30)
                         child.IsVisible = false;
-                    else
+                    else*/
                     {
                         var arrowB = @new.GetStartEnd();
                         Point ps = Transform4(arrowB.Item1);
