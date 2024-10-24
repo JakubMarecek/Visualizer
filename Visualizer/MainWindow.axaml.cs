@@ -765,19 +765,25 @@ namespace Visualizer
 								var p = Items[sub.DestinationID];
 								{
 									bool add1026 = false;
+									bool addOrd = false;
 
-									for (int j = 0; j < p.Inputs.Count; j++)
+                                    for (int j = 0; j < p.Inputs.Count; j++)
 									{
 										if (!isQuest)
 										{
+                                            if (p.Name == "scnHubNode" || p.Name == "scnXorNode")
+											{
+												addOrd = true;
+                                            }
+                                            /*
 											var ord = int.Parse(sub.Ordinal);
 											if ((p.Name == "scnHubNode" || p.Name == "scnXorNode") && ord > p.HighestOrdinal)
 											{
 												p.Inputs.Add(new() { InputName = "In", Name = "0", Ordinal = sub.Ordinal });
 												p.HighestOrdinal++;
-											}
+											}*/
 
-											var name = int.Parse(sub.Name);
+                                            var name = int.Parse(sub.Name);
 											if (p.Name == "scnQuestNode" && name == 1026)
 											{
 												add1026 = true;
@@ -794,9 +800,15 @@ namespace Visualizer
 									{
 										p.Inputs.Add(new() { InputName = "Unknown", Name = "1026", Ordinal = "0" });
 										p.Inputs[p.Inputs.Count - 1].IsUsed = true;
-										//p.HighestName++;
-									}
-								}
+                                        //p.HighestName++;
+                                    }
+                                    if (addOrd && sub.Ordinal != "0")
+                                    {
+                                        p.Inputs.Add(new() { InputName = "In", Name = "0", Ordinal = sub.Ordinal });
+										p.Inputs[p.Inputs.Count - 1].IsUsed = true;
+                                        p.HighestOrdinal++;
+                                    }
+                                }
 							}
 						}
 					}
