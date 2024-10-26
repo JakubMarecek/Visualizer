@@ -773,7 +773,8 @@ namespace Visualizer
 										{
                                             if (p.Name == "scnHubNode" || p.Name == "scnXorNode")
 											{
-												addOrd = true;
+												if (!p.Inputs.Any(a => a.Ordinal == sub.Ordinal) && sub.Ordinal != "0")
+													addOrd = true;
                                             }
                                             /*
 											var ord = int.Parse(sub.Ordinal);
@@ -802,7 +803,7 @@ namespace Visualizer
 										p.Inputs[p.Inputs.Count - 1].IsUsed = true;
                                         //p.HighestName++;
                                     }
-                                    if (addOrd && sub.Ordinal != "0")
+                                    if (addOrd)
                                     {
                                         p.Inputs.Add(new() { InputName = "In", Name = "0", Ordinal = sub.Ordinal });
 										p.Inputs[p.Inputs.Count - 1].IsUsed = true;
