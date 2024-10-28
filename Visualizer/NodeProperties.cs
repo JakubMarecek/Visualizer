@@ -1197,6 +1197,17 @@ namespace Visualizer
                     details[logicalCondIndex + "Comparison Entire Community"] = condCharacterCasted.SelectToken("comparisonParams.Data.entireCommunity").Value<string>() == "1" ? "True" : "False";
                     details[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
                 }
+                if (nodeType2 == "questCharacterKilled_ConditionType")
+                {
+                    details[logicalCondIndex + "Comparison Type"] = condCharacterCasted.SelectToken("comparisonParams.Data.comparisonType").Value<string>();
+                    details[logicalCondIndex + "Comparison Count"] = condCharacterCasted.SelectToken("comparisonParams.Data.count").Value<string>();
+                    details[logicalCondIndex + "Comparison Entire Community"] = condCharacterCasted.SelectToken("comparisonParams.Data.entireCommunity").Value<string>() == "1" ? "True" : "False";
+                    details[logicalCondIndex + "Defeated"] = condCharacterCasted.SelectToken("defeated").Value<string>() == "1" ? "True" : "False";
+                    details[logicalCondIndex + "Killed"] = condCharacterCasted.SelectToken("killed").Value<string>() == "1" ? "True" : "False";
+                    details[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
+                    details[logicalCondIndex + "Source"] = GetNameFromUniversalRef(condCharacterCasted.SelectToken("source"));
+                    details[logicalCondIndex + "Unconscious"] = condCharacterCasted.SelectToken("unconscious").Value<string>() == "1" ? "True" : "False";
+                }
             }
             else if (nodeType == "questTriggerCondition")
             {
