@@ -985,8 +985,15 @@ namespace Visualizer
                     {
                         evName += " - " + GetScreenplayItem(eventClass.SelectToken("Data.screenplayLineId.id").Value<string>(), scnSceneResource);
                     }
+                    else if (evName == "scnLookAtEvent")
+                    {
+                        subProps["Is Start"] = eventClass.SelectToken("Data.basicData.basic.isStart").Value<string>() == "1" ? "True" : "False";
+                        subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.basicData.basic.performerId.id").Value<string>(), scnSceneResource);
+                        subProps["Static Target"] = ParseVector(eventClass.SelectToken("Data.basicData.basic.staticTarget"));
+                        subProps["Target Performer"] = GetPerformer(eventClass.SelectToken("Data.basicData.basic.targetPerformerId.id").Value<string>(), scnSceneResource);
+                    }
 
-                    details["#" + counter.ToString() + " " + eventClass.SelectToken("Data.startTime").Value<string>() + "ms", evName] = subProps;
+                    details["#" + counter.ToString() + " " + eventClass.SelectToken("Data.startTime").Value<string>() + "ms" + " ET:" + eventClass.SelectToken("Data.executionTagFlags").Value<string>(), evName] = subProps;
                     counter++;
                 }
             }
@@ -1056,15 +1063,23 @@ namespace Visualizer
                 }
 
                 details["Display Name Override"] = node.SelectToken("displayNameOverride").Value<string>();
+                details["Hub Priority"] = node.SelectToken("hubPriority").Value<string>();
+                details["Choice Group"] = node.SelectToken("choiceGroup.$value").Value<string>();
 
                 var optionsArr = node.SelectToken("options");
 
                 int counter = 1;
                 foreach (var option in optionsArr)
                 {
-                    details["Option #" + counter + " Caption"] = option.SelectToken("caption.$value").Value<string>();
-                    details["Option #" + counter + " "] = GetScreenplayOption(option.SelectToken("screenplayOptionId.id").Value<string>(), scnSceneResource);
+                    NodeProps subProps = new();
 
+                    subProps["Caption"] = option.SelectToken("caption.$value").Value<string>();
+                    subProps["Type Properties"] = option.SelectToken("type.properties").Value<string>();
+                    
+                    NodeProps subPropsConds = GetPropertiesForConditions(option.SelectToken("questCondition.Data"));
+                    subProps["Quest Condition", ""] = subPropsConds;
+
+                    details["Option #" + counter, GetScreenplayOption(option.SelectToken("screenplayOptionId.id").Value<string>(), scnSceneResource)] = subProps;
                     counter++;
                 }
 
@@ -1084,6 +1099,8 @@ namespace Visualizer
         private static NodeProps GetPropertiesForConditions(JToken node, string logicalCondIndex = "")
         {
             NodeProps details = new();
+
+            if (node == null) return details;
 
             string nodeType = node.SelectToken("$type").Value<string>();
 
