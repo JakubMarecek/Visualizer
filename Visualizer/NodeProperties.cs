@@ -1075,7 +1075,14 @@ namespace Visualizer
 
                     subProps["Caption"] = option.SelectToken("caption.$value").Value<string>();
                     subProps["Type Properties"] = option.SelectToken("type.properties").Value<string>();
-                    
+
+                    var iconTagIds = "";
+                    foreach (var p in option.SelectToken("iconTagIds"))
+                    {
+                        iconTagIds += (iconTagIds != "" ? ", " : "") + p.SelectToken("$value").Value<string>();
+                    }
+                    subProps["Icon Tag Ids"] = iconTagIds;
+
                     NodeProps subPropsConds = GetPropertiesForConditions(option.SelectToken("questCondition.Data"));
                     subProps["Quest Condition", ""] = subPropsConds;
 
