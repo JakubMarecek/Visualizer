@@ -528,6 +528,8 @@ namespace Visualizer
                 {
                     var actionCasted = action.SelectToken("type.Data");
 
+                    if (actionCasted == null) continue;
+
                     string nodeType2 = actionCasted.SelectToken("$type").Value<string>();
 
                     if (nodeType2 == "questScene_NodeType")
