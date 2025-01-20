@@ -767,16 +767,16 @@ namespace Visualizer
 									bool add1026 = false;
 									bool addOrd = false;
 
-                                    for (int j = 0; j < p.Inputs.Count; j++)
+									for (int j = 0; j < p.Inputs.Count; j++)
 									{
 										if (!isQuest)
 										{
-                                            if (p.Name == "scnHubNode" || p.Name == "scnXorNode")
+											if (p.Name == "scnHubNode" || p.Name == "scnXorNode")
 											{
 												if (!p.Inputs.Any(a => a.Ordinal == sub.Ordinal) && sub.Ordinal != "0")
 													addOrd = true;
-                                            }
-                                            /*
+											}
+											/*
 											var ord = int.Parse(sub.Ordinal);
 											if ((p.Name == "scnHubNode" || p.Name == "scnXorNode") && ord > p.HighestOrdinal)
 											{
@@ -784,7 +784,7 @@ namespace Visualizer
 												p.HighestOrdinal++;
 											}*/
 
-                                            var name = int.Parse(sub.Name);
+											var name = int.Parse(sub.Name);
 											if (p.Name == "scnQuestNode" && name == 1026)
 											{
 												add1026 = true;
@@ -801,15 +801,15 @@ namespace Visualizer
 									{
 										p.Inputs.Add(new() { InputName = "Unknown", Name = "1026", Ordinal = "0" });
 										p.Inputs[p.Inputs.Count - 1].IsUsed = true;
-                                        //p.HighestName++;
-                                    }
-                                    if (addOrd)
-                                    {
-                                        p.Inputs.Add(new() { InputName = "In", Name = "0", Ordinal = sub.Ordinal });
+										//p.HighestName++;
+									}
+									if (addOrd)
+									{
+										p.Inputs.Add(new() { InputName = "In", Name = "0", Ordinal = sub.Ordinal });
 										p.Inputs[p.Inputs.Count - 1].IsUsed = true;
-                                        p.HighestOrdinal++;
-                                    }
-                                }
+										p.HighestOrdinal++;
+									}
+								}
 							}
 						}
 					}
@@ -818,7 +818,34 @@ namespace Visualizer
 
 
 
-
+					Dictionary<string, string> drawWithin = [];
+					Dictionary<string, Tuple<string, string>> ignoreDrawChilds = [];
+					Dictionary<string, string> notes = [];
+					//drawWithin.Add("14100", "102");
+					string fileNameVisul = fileName + ".visualizer.json";
+					if (File.Exists(fileNameVisul))
+					{
+						var visulText = File.ReadAllText(fileNameVisul);
+						var visulJsonData = (JObject)JsonConvert.DeserializeObject(visulText);
+						
+						var visulDrawWithin = visulJsonData.SelectTokens("DrawWithin.[*]");
+						foreach (var dw in visulDrawWithin)
+						{
+							drawWithin.Add(dw.SelectToken("NodeID").Value<string>(), dw.SelectToken("DrawParent").Value<string>());
+						}
+						
+						var visulIgnoreDrawChilds = visulJsonData.SelectTokens("IgnoreDrawChilds.[*]");
+						foreach (var dw in visulIgnoreDrawChilds)
+						{
+							ignoreDrawChilds.Add(dw.SelectToken("NodeID").Value<string>(), new(dw.SelectToken("Name").Value<string>(), dw.SelectToken("Ordinal").Value<string>()));
+						}
+						
+						var visulNotes = visulJsonData.SelectTokens("Notes.[*]");
+						foreach (var dw in visulNotes)
+						{
+							notes.Add(dw.SelectToken("NodeID").Value<string>(), dw.SelectToken("Note").Value<string>());
+						}
+					}
 
 
 
@@ -842,6 +869,27 @@ namespace Visualizer
 
 							if (item.Name == "scnStartNode" || item.Name == "questInputNodeDefinition") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#FF076C00"));
 							if (item.Name == "scnEndNode" || item.Name == "questOutputNodeDefinition") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#81FF0004"));
+							if (item.Name == "scnSectionNode") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#2196f3"));
+							if (item.Name == "scnQuestNode") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#4caf50"));
+							if (item.Name == "scnChoiceNode") { w.Header.Foreground = Brushes.Black; w.HeaderRectangle.Fill = Brushes.Orange; }
+							if (item.Name == "scnCutControlNode" || item.Name == "scnRandomizerNode") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#f44336"));
+							if (item.Name == "scnHubNode" || item.Name == "scnAndNode") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#9c27b0"));
+							
+							if (notes.TryGetValue(id, out string value))
+							{
+								var noteTB = new TextBlock();
+								noteTB.Text = "Note: " + value;
+								noteTB.Foreground = Brushes.Black;
+								noteTB.FontSize = 16;
+								noteTB.FontWeight = FontWeight.Medium;
+								noteTB.Margin = new(0, -40, 0, 0);
+								noteTB.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top;
+								noteTB.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
+								noteTB.Background = new SolidColorBrush(Color.Parse("#93ffffff"));
+								noteTB.Padding = new(10, 5, 10, 5);
+								noteTB.Height = 30;
+								w.widgetMainGrid.Children.Add(noteTB);
+							}
 
 							w.ZIndex = 10;
 							canvas.Children.Add(w);
@@ -910,9 +958,17 @@ namespace Visualizer
 							int childH = 0;
 							foreach (var sub in item.Outputs)
 							{
+								if (ignoreDrawChilds.TryGetValue(id, out Tuple<string, string> value3))
+									if (sub.Name == value3.Item1 && sub.Ordinal == value3.Item2)
+										continue;
+
 								foreach (var sub2 in sub.Connections)
 								{
 									var p = Items[sub2.DestinationID];
+
+									if (drawWithin.TryGetValue(sub2.DestinationID, out string value2))
+										if (value2 != id)
+											continue;
 
 									childH += dr(sub2.DestinationID, p, xs + boxWidth + space);
 								}
@@ -1059,10 +1115,10 @@ namespace Visualizer
 
 					var w = new Widget();
 					w.ID = -1;
-					w.Header.Text = "Not included";
+					w.Header.Text = "Not included nodes";
 					w.Header.Foreground = Brushes.White;
 					w.Width = 300;
-					w.HeaderRectangle.Fill = Brushes.Orange;
+					//w.HeaderRectangle.Fill = Brushes.Orange;
 					w.ZIndex = 10;
 					w.DisableMove = true;
 					canvas.Children.Add(w);
