@@ -871,7 +871,7 @@ namespace Visualizer
 							if (item.Name == "scnEndNode" || item.Name == "questOutputNodeDefinition") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#81FF0004"));
 							if (item.Name == "scnSectionNode") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#2196f3"));
 							if (item.Name == "scnQuestNode") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#4caf50"));
-							if (item.Name == "scnChoiceNode") { w.Header.Foreground = Brushes.Black; w.HeaderRectangle.Fill = Brushes.Orange; }
+							if (item.Name.Contains("scnChoiceNode")) { w.Header.Foreground = Brushes.Black; w.HeaderRectangle.Fill = Brushes.Orange; }
 							if (item.Name == "scnCutControlNode" || item.Name == "scnRandomizerNode") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#f44336"));
 							if (item.Name == "scnHubNode" || item.Name == "scnAndNode") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#9c27b0"));
 							

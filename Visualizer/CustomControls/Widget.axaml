@@ -77,7 +77,7 @@
         </Border.BorderBrush> -->
         <Rectangle Fill="#1e1e1e" StrokeThickness="2" RadiusX="5" RadiusY="5" />
         
-        <Grid Margin="2,2,2,2">
+        <Grid Margin="2,2,2,2" ClipToBounds="True">
             <Grid.RowDefinitions>
                 <RowDefinition Height="30"/>
 				<RowDefinition Height="*" />
