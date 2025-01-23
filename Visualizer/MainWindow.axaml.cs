@@ -762,7 +762,8 @@ namespace Visualizer
 						{
 							foreach (var sub in item.Value.Outputs[i].Connections)
 							{
-								var p = Items[sub.DestinationID];
+								if (Items.TryGetValue(sub.DestinationID, out var p))
+								//var p = Items[sub.DestinationID];
 								{
 									bool add1026 = false;
 									bool addOrd = false;
@@ -810,6 +811,10 @@ namespace Visualizer
 										p.HighestOrdinal++;
 									}
 								}
+								else
+								{
+									HandleDebug($"ID {sub.SourceID} - Destination ID {sub.DestinationID} not found");
+								}
 							}
 						}
 					}
@@ -827,19 +832,19 @@ namespace Visualizer
 					{
 						var visulText = File.ReadAllText(fileNameVisul);
 						var visulJsonData = (JObject)JsonConvert.DeserializeObject(visulText);
-						
+
 						var visulDrawWithin = visulJsonData.SelectTokens("DrawWithin.[*]");
 						foreach (var dw in visulDrawWithin)
 						{
 							drawWithin.Add(dw.SelectToken("NodeID").Value<string>(), dw.SelectToken("DrawParent").Value<string>());
 						}
-						
+
 						var visulIgnoreDrawChilds = visulJsonData.SelectTokens("IgnoreDrawChilds.[*]");
 						foreach (var dw in visulIgnoreDrawChilds)
 						{
 							ignoreDrawChilds.Add(dw.SelectToken("NodeID").Value<string>(), new(dw.SelectToken("Name").Value<string>(), dw.SelectToken("Ordinal").Value<string>()));
 						}
-						
+
 						var visulNotes = visulJsonData.SelectTokens("Notes.[*]");
 						foreach (var dw in visulNotes)
 						{
@@ -874,7 +879,7 @@ namespace Visualizer
 							if (item.Name.Contains("scnChoiceNode")) { w.Header.Foreground = Brushes.Black; w.HeaderRectangle.Fill = Brushes.Orange; }
 							if (item.Name == "scnCutControlNode" || item.Name == "scnRandomizerNode") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#f44336"));
 							if (item.Name == "scnHubNode" || item.Name == "scnAndNode") w.HeaderRectangle.Fill = new SolidColorBrush(Color.Parse("#9c27b0"));
-							
+
 							if (notes.TryGetValue(id, out string value))
 							{
 								var noteTB = new TextBlock();
@@ -964,13 +969,14 @@ namespace Visualizer
 
 								foreach (var sub2 in sub.Connections)
 								{
-									var p = Items[sub2.DestinationID];
+									if (Items.TryGetValue(sub2.DestinationID, out var p))
+									{
+										if (drawWithin.TryGetValue(sub2.DestinationID, out string value2))
+											if (value2 != id)
+												continue;
 
-									if (drawWithin.TryGetValue(sub2.DestinationID, out string value2))
-										if (value2 != id)
-											continue;
-
-									childH += dr(sub2.DestinationID, p, xs + boxWidth + space);
+										childH += dr(sub2.DestinationID, p, xs + boxWidth + space);
+									}
 								}
 							}
 
@@ -1043,48 +1049,50 @@ namespace Visualizer
 							{
 								foreach (var sub in item.Value.Outputs[i].Connections)
 								{
-									var p = Items[sub.DestinationID];
-									if (p.Draw)
+									if (Items.TryGetValue(sub.DestinationID, out var p))
 									{
-										for (int j = 0; j < p.Inputs.Count; j++)
+										if (p.Draw)
 										{
-											if (
-												//(!isQuest && sub.Value.Ordinal == p.Inputs[j].Ins || (sub.Value.Name == "0" && p.Inputs[j].Ins == "gen_in") || (sub.Value.Name == "1" && p.Inputs[j].Ins == "gen_cut")) ||
-												//!isQuest && sub.Ordinal == p.Inputs[j].Ins ||
-												//checkInput(item.Value.Name, sub.Name, p.Inputs[j].Ins) ||
-												//(isQuest && sub.Name == p.Inputs[j].Ins)
-												(!isQuest && sub.Name == p.Inputs[j].Name && sub.Ordinal == p.Inputs[j].Ordinal) ||
-												(isQuest && sub.HandleID == p.Inputs[j].HandleID)
-											)
+											for (int j = 0; j < p.Inputs.Count; j++)
 											{
-												ArrowLineNew l = new()
+												if (
+													//(!isQuest && sub.Value.Ordinal == p.Inputs[j].Ins || (sub.Value.Name == "0" && p.Inputs[j].Ins == "gen_in") || (sub.Value.Name == "1" && p.Inputs[j].Ins == "gen_cut")) ||
+													//!isQuest && sub.Ordinal == p.Inputs[j].Ins ||
+													//checkInput(item.Value.Name, sub.Name, p.Inputs[j].Ins) ||
+													//(isQuest && sub.Name == p.Inputs[j].Ins)
+													(!isQuest && sub.Name == p.Inputs[j].Name && sub.Ordinal == p.Inputs[j].Ordinal) ||
+													(isQuest && sub.HandleID == p.Inputs[j].HandleID)
+												)
 												{
-													StrokeThickness = 2,
-													Stroke = new SolidColorBrush(linesColors[selClr]),
-													ZIndex = 20,
-													MakeBezierAlt = true,
-													MakePoly = false,
-													ToBoxUI = p.UI,
-													ToBoxSecID = j,
-													FromBoxUI = item.Value.UI,
-													FromBoxSecID = i,
-													FromBoxInputs = item.Value.Inputs.Count
-												};
-												canvas.Children.Add(l);
+													ArrowLineNew l = new()
+													{
+														StrokeThickness = 2,
+														Stroke = new SolidColorBrush(linesColors[selClr]),
+														ZIndex = 20,
+														MakeBezierAlt = true,
+														MakePoly = false,
+														ToBoxUI = p.UI,
+														ToBoxSecID = j,
+														FromBoxUI = item.Value.UI,
+														FromBoxSecID = i,
+														FromBoxInputs = item.Value.Inputs.Count
+													};
+													canvas.Children.Add(l);
 
-												selClr++;
-												if (selClr >= linesColors.Count)
-													selClr = 0;
+													selClr++;
+													if (selClr >= linesColors.Count)
+														selClr = 0;
+												}
 											}
-										}
 
-										if (!isQuest)
-										{
-											if ((int.Parse(sub.Name) != 1026 && int.Parse(sub.Name) > p.HighestName) || int.Parse(sub.Ordinal) > p.HighestOrdinal)
+											if (!isQuest)
 											{
-												var t = "Bad connection: " + sub.SourceID + " > " + sub.DestinationID;
-												Console.WriteLine(t);
-												HandleDebug(t);
+												if ((int.Parse(sub.Name) != 1026 && int.Parse(sub.Name) > p.HighestName) || int.Parse(sub.Ordinal) > p.HighestOrdinal)
+												{
+													var t = "Bad connection: " + sub.SourceID + " > " + sub.DestinationID;
+													Console.WriteLine(t);
+													HandleDebug(t);
+												}
 											}
 										}
 									}
