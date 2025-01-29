@@ -974,6 +974,7 @@ namespace Visualizer
                     else if (evName == "scnPlaySkAnimEvent")
                     {
                         subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performer.id").Value<string>(), scnSceneResource);
+                        subProps["Origin Marker Node Ref"] = eventClass.SelectToken("Data.rootMotionData.originMarker.nodeRef.$value").Value<string>();
 
                         var animType = eventClass.SelectToken("Data.animName.Data.type").Value<string>();
 
@@ -989,11 +990,13 @@ namespace Visualizer
                     else if (evName == "scnPlayRidAnimEvent")
                     {
                         subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performer.id").Value<string>(), scnSceneResource);
+                        subProps["Origin Marker Node Ref"] = eventClass.SelectToken("Data.animOriginMarker.nodeRef.$value").Value<string>();
                         subProps.AddRange(GetRIDAnimDetails(eventClass?.SelectToken("Data.animResRefId.id")?.Value<string>(), "", "", scnSceneResource));
                     }
                     else if (evName == "scneventsPlayRidCameraAnimEvent")
                     {
                         subProps["Camera Ref"] = eventClass.SelectToken("Data.cameraRef.$value").Value<string>();
+                        subProps["Origin Marker Node Ref"] = eventClass.SelectToken("Data.animOriginMarker.nodeRef.$value").Value<string>();
                         subProps.AddRange(GetRIDAnimDetails("", "", eventClass?.SelectToken("Data.animSRRefId.id")?.Value<string>(), scnSceneResource));
                     }
                     else if (evName == "scnAudioEvent")
