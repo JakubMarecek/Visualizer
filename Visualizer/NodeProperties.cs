@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection.PortableExecutable;
+using System.Text.Json.Serialization;
 
 namespace Visualizer
 {
@@ -975,8 +976,25 @@ namespace Visualizer
                         subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performer.id").Value<string>(), scnSceneResource);
 
                         var animType = eventClass.SelectToken("Data.animName.Data.type").Value<string>();
+
                         if (animType == "direct")
                             subProps["Anim"] = eventClass?.SelectToken("Data.animName.Data.unk1[0].$value")?.Value<string>();
+
+                        if (animType == "reference")
+                            subProps.AddRange(GetRIDAnimDetails(eventClass?.SelectToken("Data.animName.Data.unk2[0]")?.Value<string>(), "", "", scnSceneResource));
+
+                        if (animType == "container")
+                            subProps.AddRange(GetRIDAnimDetails("", eventClass?.SelectToken("Data.animName.Data.unk2[0]")?.Value<string>(), "", scnSceneResource));
+                    }
+                    else if (evName == "scnPlayRidAnimEvent")
+                    {
+                        subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performer.id").Value<string>(), scnSceneResource);
+                        subProps.AddRange(GetRIDAnimDetails(eventClass?.SelectToken("Data.animResRefId.id")?.Value<string>(), "", "", scnSceneResource));
+                    }
+                    else if (evName == "scneventsPlayRidCameraAnimEvent")
+                    {
+                        subProps["Camera Ref"] = eventClass.SelectToken("Data.cameraRef.$value").Value<string>();
+                        subProps.AddRange(GetRIDAnimDetails("", "", eventClass?.SelectToken("Data.animSRRefId.id")?.Value<string>(), scnSceneResource));
                     }
                     else if (evName == "scnAudioEvent")
                     {
@@ -993,6 +1011,24 @@ namespace Visualizer
                         subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.basicData.basic.performerId.id").Value<string>(), scnSceneResource);
                         subProps["Static Target"] = ParseVector(eventClass.SelectToken("Data.basicData.basic.staticTarget"));
                         subProps["Target Performer"] = GetPerformer(eventClass.SelectToken("Data.basicData.basic.targetPerformerId.id").Value<string>(), scnSceneResource);
+                    }
+                    else if (evName == "scneventsAttachPropToPerformer")
+                    {
+                        subProps["To Performer"] = GetPerformer(eventClass.SelectToken("Data.performerId.id").Value<string>(), scnSceneResource);
+                        subProps["Prop"] = GetProp(eventClass.SelectToken("Data.propId.id").Value<string>(), scnSceneResource);
+                    }
+                    else if (evName == "scneventsAttachPropToNode")
+                    {
+                        subProps["Prop"] = GetProp(eventClass.SelectToken("Data.propId.id").Value<string>(), scnSceneResource);
+                        subProps["Node Ref"] = eventClass.SelectToken("Data.nodeRef.$value").Value<string>();
+                        subProps["Offset Pos"] = ParseVector(eventClass.SelectToken("Data.customOffsetPos"));
+                        subProps["Offset Rot"] = ParseQuaternion(eventClass.SelectToken("Data.customOffsetRot"));
+                    }
+                    else if (evName == "scneventsAttachPropToWorld")
+                    {
+                        subProps["Prop"] = GetProp(eventClass.SelectToken("Data.propId.id").Value<string>(), scnSceneResource);
+                        subProps["Offset Pos"] = ParseVector(eventClass.SelectToken("Data.customOffsetPos"));
+                        subProps["Offset Rot"] = ParseQuaternion(eventClass.SelectToken("Data.customOffsetRot"));
                     }
 
                     details["#" + counter.ToString() + " " + eventClass.SelectToken("Data.startTime").Value<string>() + "ms" + " ET:" + eventClass.SelectToken("Data.executionTagFlags").Value<string>(), evName] = subProps;
@@ -1043,7 +1079,7 @@ namespace Visualizer
 
                 if (mode == "attachToActor")
                 {
-                    details["Actor ID"] = node.SelectToken("ataParams.actorId.id").Value<string>();
+                    details["Actor"] = GetActor(node.SelectToken("ataParams.actorId.id").Value<string>(), scnSceneResource);
                 }
                 if (mode == "attachToGameObject")
                 {
@@ -1051,7 +1087,7 @@ namespace Visualizer
                 }
                 if (mode == "attachToProp")
                 {
-                    details["Prop ID"] = node.SelectToken("atpParams.propId.id").Value<string>();
+                    details["Prop"] = GetProp(node.SelectToken("atpParams.propId.id").Value<string>(), scnSceneResource);
                 }
                 if (mode == "attachToScreen")
                 {
@@ -1199,7 +1235,7 @@ namespace Visualizer
                 {
                     subProps.AddRange(GetPropertiesForConditions(conditions[i].SelectToken("Data"), logicalCondIndex + "#" + i + " "));
                 }
-                
+
                 details[logicalCondIndex + "Operation", node.SelectToken("operation").Value<string>()] = subProps;
             }
             else if (nodeType == "questCharacterCondition")
@@ -1358,6 +1394,87 @@ namespace Visualizer
             return details;
         }
 
+        private static NodeProps GetRIDAnimDetails(string ridAnim, string ridContainer, string ridCameraAnim, JToken scnSceneResource)
+        {
+            NodeProps details = new();
+
+            if (scnSceneResource != null)
+            {
+                string getRIDAnimResPath(string ridResID)
+                {
+                    var path = "";
+
+                    var ridRess = scnSceneResource.SelectToken("ridResources");
+                    foreach (var ridResss in ridRess)
+                    {
+                        if (ridResss.SelectToken("id.id").Value<string>() == ridResID)
+                        {
+                            path = ridResss.SelectToken("ridResource.DepotPath.$value").Value<string>();
+                            path = Path.GetFileName(path);
+                        }
+                    }
+
+                    return ridResID + " (" + path + ")";
+                }
+
+                string[] getRIDAnimData(string ridAnimID)
+                {
+                    var ridAnimRes = scnSceneResource.SelectToken("resouresReferences.ridAnimations.[" + ridAnimID + "]");
+                    var ridSN = ridAnimRes.SelectToken("animationSN.serialNumber").Value<string>();
+                    string ridRes = ridAnimRes.SelectToken("resourceId.id").Value<string>();
+
+                    return [ridSN, getRIDAnimResPath(ridRes)];
+                }
+
+                if (ridAnim != "")
+                {
+                    var d = getRIDAnimData(ridAnim);
+                    details["RID Anim Index"] = "#" + ridAnim;
+                    details["RID Anim SN"] = d[0];
+                    details["RID Res"] = d[1];
+                }
+
+                if (ridCameraAnim != "")
+                {
+                    var ridAnimRes = scnSceneResource.SelectToken("resouresReferences.ridCameraAnimations.[" + ridCameraAnim + "]");
+                    var ridSN = ridAnimRes.SelectToken("animationSN.serialNumber").Value<string>();
+                    string ridRes = ridAnimRes.SelectToken("resourceId.id").Value<string>();
+
+                    details["RID Camera Anim Index"] = "#" + ridCameraAnim;
+                    details["RID Camera Anim SN"] = ridSN;
+                    details["RID Res"] = getRIDAnimResPath(ridRes);
+                }
+
+                if (ridContainer != "")
+                {
+                    details["RID Container Index"] = "#" + ridContainer;
+
+                    var ridContainerRes = scnSceneResource.SelectToken("resouresReferences.ridAnimationContainers.[" + ridContainer + "]");
+
+                    int i = 0;
+                    NodeProps subDetails = new();
+
+                    var ridContainerResAnims = ridContainerRes.SelectToken("animations");
+                    foreach (var an in ridContainerResAnims)
+                    {
+                        var animID = an.SelectToken("animation.id").Value<string>();
+                        var animContext = an.SelectToken("context.genderMask.mask").Value<string>();
+
+                        var d = getRIDAnimData(animID);
+                        subDetails["#" + i + " RID Context Gender Mask"] = animContext;
+                        subDetails["#" + i + " RID Anim SN"] = d[0];
+                        subDetails["#" + i + " RID Res"] = d[1];
+
+                        i++;
+                    }
+
+                    details["RID Container", "Animations"] = subDetails;
+                }
+            }
+
+            return details;
+        }
+
         private static string GetScreenplayOption(string screenplayOptionID, JToken scnSceneResource)
         {
             string retVal = "OptionID: " + screenplayOptionID + ", ";
@@ -1413,6 +1530,44 @@ namespace Visualizer
             }
 
             return retVal;
+        }
+
+        private static string GetProp(string propID, JToken scnSceneResource)
+        {
+            var propName = "";
+
+            if (scnSceneResource != null)
+            {
+                foreach (var prop in scnSceneResource.SelectToken("props"))
+                {
+                    if (prop.SelectToken("propId.id").Value<string>() == propID)
+                    {
+                        propName = "(" + propID + ") " + prop.SelectToken("propName").Value<string>();
+                        break;
+                    }
+                }
+            }
+
+            return propName;
+        }
+
+        private static string GetActor(string actorID, JToken scnSceneResource)
+        {
+            var actorName = "";
+
+            if (scnSceneResource != null)
+            {
+                foreach (var actor in scnSceneResource.SelectToken("actors"))
+                {
+                    if (actor.SelectToken("actorId.id").Value<string>() == actorID)
+                    {
+                        actorName = "(" + actorID + ") " + actor.SelectToken("actorName").Value<string>();
+                        break;
+                    }
+                }
+            }
+
+            return actorName;
         }
 
         private static string ParseQuaternion(JToken vec)
