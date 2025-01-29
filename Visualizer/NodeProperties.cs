@@ -1410,7 +1410,7 @@ namespace Visualizer
                         if (ridResss.SelectToken("id.id").Value<string>() == ridResID)
                         {
                             path = ridResss.SelectToken("ridResource.DepotPath.$value").Value<string>();
-                            path = Path.GetFileName(path);
+                            path = path.Split('\\')[^1];
                         }
                     }
 
