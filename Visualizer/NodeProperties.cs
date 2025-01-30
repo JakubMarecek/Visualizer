@@ -975,6 +975,7 @@ namespace Visualizer
                     {
                         subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performer.id").Value<string>(), scnSceneResource);
                         subProps["Origin Marker Node Ref"] = eventClass.SelectToken("Data.rootMotionData.originMarker.nodeRef.$value").Value<string>();
+                        subProps["Actor Component"] = eventClass.SelectToken("Data.actorComponent.$value").Value<string>();
 
                         var animType = eventClass.SelectToken("Data.animName.Data.type").Value<string>();
 
@@ -991,6 +992,7 @@ namespace Visualizer
                     {
                         subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performer.id").Value<string>(), scnSceneResource);
                         subProps["Origin Marker Node Ref"] = eventClass.SelectToken("Data.animOriginMarker.nodeRef.$value").Value<string>();
+                        subProps["Actor Component"] = eventClass.SelectToken("Data.actorComponent.$value").Value<string>();
                         subProps.AddRange(GetRIDAnimDetails(eventClass?.SelectToken("Data.animResRefId.id")?.Value<string>(), "", "", scnSceneResource));
                     }
                     else if (evName == "scneventsPlayRidCameraAnimEvent")
