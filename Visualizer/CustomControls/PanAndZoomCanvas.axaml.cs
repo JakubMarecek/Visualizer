@@ -61,6 +61,8 @@ namespace WpfPanAndZoom.CustomControls
 
 		public bool SnapToGrid { set; get; } = false;
 
+		public bool AllowLinesFade { set; get; } = true;
+
 		public PanAndZoomCanvas()
 		{
 			InitializeComponent();
@@ -91,13 +93,13 @@ namespace WpfPanAndZoom.CustomControls
 			_selectRect.Width = 1;
 			_selectRect.Height = 1;
 			_selectRect.IsVisible = false;
-			Children.Add(_selectRect);
 			_selectRect.ZIndex = 100;
 			_selectRect.RenderTransformOrigin = new(0, 0, RelativeUnit.Relative);
 			_selectRect.Name = "selectionRect";
 			//Canvas.SetZIndex(_selectRect, 100);
 			Canvas.SetLeft(_selectRect, -10);
 			Canvas.SetTop(_selectRect, -10);
+			Children.Add(_selectRect);
 			_selectionItems = new();
 			_selectionItemsDeltas = new();
 
@@ -669,41 +671,76 @@ namespace WpfPanAndZoom.CustomControls
 			{
 				if (child is ArrowLineNew @new)
 				{
+					var arrowB = @new.GetStartEnd();
+					Point ps = Transform4(arrowB.Item1);
+					Point pe = Transform4(arrowB.Item2);
+
+					if (
+						(ps.X > wndEnd.X) ||
+						(pe.X < wndStart.X) ||
+						(ps.Y > wndEnd.Y) ||
+						(pe.Y < wndStart.Y)
+					)
+						child.IsVisible = false;
+					else
 					{
-						var arrowB = @new.GetStartEnd();
-						Point ps = Transform4(arrowB.Item1);
-						Point pe = Transform4(arrowB.Item2);
+						child.IsVisible = true;
 
-						if (
-							(ps.X > wndEnd.X) ||
-							(pe.X < wndStart.X) ||
-							(ps.Y > wndEnd.Y) ||
-							(pe.Y < wndStart.Y)
-						)
-							child.IsVisible = false;
-						else
+						if (AllowLinesFade)
 						{
-							if (
-								(
-									(ps.X < wndStart.X) ||
-									(ps.Y < wndStart.Y)
-								) &&
-								(
-									(pe.X > wndEnd.X) ||
-									(pe.Y > wndEnd.Y)
-								)
-							)
-							{
-								child.Opacity = .1;
-							}
-							else
-							{
-								child.Opacity = 1;
-							}
+							ps = Transform4(new(@new.X1, @new.Y1));
+							pe = Transform4(new(@new.X2, @new.Y2));
 
-							child.IsVisible = true;
+							//if (child.Opacity == 1)
+							{
+								if (
+									(ps.X < wndStart.X || ps.Y < wndStart.Y || ps.X > wndEnd.X || ps.Y > wndEnd.Y) &&
+									(pe.X < wndStart.X || pe.Y < wndStart.Y || pe.X > wndEnd.X || pe.Y > wndEnd.Y)
+								)
+								{
+									child.Opacity = .1;
+								}
+								else if (child.Opacity == .1)
+								{
+									child.Opacity = 1;
+								}
+							}
 						}
 					}
+
+					//var arrowB = @new.GetStartEnd();
+					//Point ps = Transform4(arrowB.Item1);
+					//Point pe = Transform4(arrowB.Item2);
+
+					/*if (
+						(ps.X > wndEnd.X) ||
+						(pe.X < wndStart.X) ||
+						(ps.Y > wndEnd.Y) ||
+						(pe.Y < wndStart.Y)
+					)
+						child.IsVisible = false;
+					else
+					{
+						if (
+							(
+								(ps.X < wndStart.X) ||
+								(ps.Y < wndStart.Y)
+							) &&
+							(
+								(pe.X > wndEnd.X) ||
+								(pe.Y > wndEnd.Y)
+							)
+						)
+						{
+							child.Opacity = .1;
+						}
+						else
+						{
+							child.Opacity = 1;
+						}
+
+						child.IsVisible = true;
+					}*/
 				}
 				else
 				{

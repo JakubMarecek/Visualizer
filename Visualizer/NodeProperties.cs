@@ -346,6 +346,12 @@ namespace Visualizer
                     details["Source"] = envManagerNodeCasted.SelectToken("source.$value").Value<string>();
                     details["Weather ID"] = envManagerNodeCasted.SelectToken("weatherID.$value").Value<string>();
                 }
+                if (nodeType2 == "questPlayEnv_NodeType")
+                {
+                    details["Blend Time"] = envManagerNodeCasted.SelectToken("params.blendTime").Value<string>();
+                    details["Enable"] = envManagerNodeCasted.SelectToken("params.enable").Value<string>() == "1" ? "True" : "False";
+                    details["Env Params"] = envManagerNodeCasted.SelectToken("params.envParams.DepotPath.$value").Value<string>();
+                }
             }
             else if (nodeType == "questRenderFxManagerNodeDefinition")
             {
@@ -1034,6 +1040,30 @@ namespace Visualizer
                         subProps["Prop"] = GetProp(eventClass.SelectToken("Data.propId.id").Value<string>(), scnSceneResource);
                         subProps["Offset Pos"] = ParseVector(eventClass.SelectToken("Data.customOffsetPos"));
                         subProps["Offset Rot"] = ParseQuaternion(eventClass.SelectToken("Data.customOffsetRot"));
+                    }
+                    else if (evName == "scnChangeIdleAnimEvent")
+                    {
+                        subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performer.id").Value<string>(), scnSceneResource);
+                        subProps["Baked Facial Female"] = eventClass.SelectToken("Data.bakedFacialTransition.facialKey_Female.$value").Value<string>();
+                        subProps["Baked Facial Male"] = eventClass.SelectToken("Data.bakedFacialTransition.facialKey_Male.$value").Value<string>();
+                        subProps["Baked To Idle Female"] = eventClass.SelectToken("Data.bakedFacialTransition.toIdleFemale.$value").Value<string>();
+                        subProps["Baked To Idle Male"] = eventClass.SelectToken("Data.bakedFacialTransition.toIdleMale.$value").Value<string>();
+                        subProps["Duration"] = eventClass.SelectToken("Data.duration").Value<string>();
+                    }
+                    else if (evName == "scnPoseCorrectionEvent")
+                    {
+                        subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performerId.id").Value<string>(), scnSceneResource);
+                    }
+                    else if (evName == "scnIKEvent")
+                    {
+                        subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.ikData.basic.performerId.id").Value<string>(), scnSceneResource);
+                    }
+                    else if (evName == "scneventsCameraParamsEvent")
+                    {
+                        subProps["Override Dof"] = eventClass.SelectToken("Data.cameraOverrideSettings.overrideDof").Value<string>() == "1" ? "True" : "False";
+                        subProps["Override Fov"] = eventClass.SelectToken("Data.cameraOverrideSettings.overrideFov").Value<string>() == "1" ? "True" : "False";
+                        subProps["Reset Dof"] = eventClass.SelectToken("Data.cameraOverrideSettings.resetDof").Value<string>() == "1" ? "True" : "False";
+                        subProps["Reset Fov"] = eventClass.SelectToken("Data.cameraOverrideSettings.resetFov").Value<string>() == "1" ? "True" : "False";
                     }
 
                     details["#" + counter.ToString() + " " + eventClass.SelectToken("Data.startTime").Value<string>() + "ms" + " ET:" + eventClass.SelectToken("Data.executionTagFlags").Value<string>(), evName] = subProps;

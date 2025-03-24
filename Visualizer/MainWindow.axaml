@@ -15,6 +15,7 @@
 			<CustomControls:PanAndZoomCanvas x:Name="canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True" />
             <Label Content="" Name="debugTxt" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="16" FontWeight="Bold" Foreground="White" Margin="0,0,0,0" />
 		    <TextBox Name="searchTB" HorizontalAlignment="Right" VerticalAlignment="Top" Width="200" KeyUp="searchTB_KeyUp" />
+		    <Button Name="reloadBtn" HorizontalAlignment="Right" VerticalAlignment="Top" Width="200" Margin="0,30,0,0" Content="Reload" Click="reloadBtn_Click" />
 		</Grid>
 	</Grid>
 </Window>
