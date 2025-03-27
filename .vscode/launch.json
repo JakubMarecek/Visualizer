@@ -10,7 +10,7 @@
 			"request": "launch",
 			"preLaunchTask": "build",
 			// If you have changed target frameworks, make sure to update the program path.
-			"program": "${workspaceFolder}/Visualizer/bin/Debug/net8.0/Visualizer.dll",
+			"program": "${workspaceFolder}/Visualizer/bin/Debug/net9.0/Visualizer.dll",
 			"args": [],
 			"cwd": "${workspaceFolder}/Visualizer",
 			// For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
