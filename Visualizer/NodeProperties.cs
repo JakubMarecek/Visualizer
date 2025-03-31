@@ -82,7 +82,7 @@ namespace Visualizer
 
             string nodeType = node.SelectToken("$type").Value<string>();
 
-            details["Type"] = GetNameFromClass(nodeType);
+            details["Quest Node Type"] = GetNameFromClass(nodeType);
 
             if (nodeType == "questInputNodeDefinition")
             {
@@ -126,12 +126,16 @@ namespace Visualizer
 
                 string nodeType2 = factDBManagerCasted.SelectToken("$type").Value<string>();
 
+                NodeProps subProps = new();
+
                 if (nodeType2 == "questSetVar_NodeType")
                 {
-                    details["Fact Name"] = factDBManagerCasted.SelectToken("factName").Value<string>();
-                    details["Set Exact Value"] = factDBManagerCasted.SelectToken("setExactValue").Value<string>() == "1" ? "True" : "False";
-                    details["Value"] = factDBManagerCasted.SelectToken("value").Value<string>();
+                    subProps["Fact Name"] = factDBManagerCasted.SelectToken("factName").Value<string>();
+                    subProps["Set Exact Value"] = factDBManagerCasted.SelectToken("setExactValue").Value<string>() == "1" ? "True" : "False";
+                    subProps["Value"] = factDBManagerCasted.SelectToken("value").Value<string>();
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questJournalNodeDefinition")
             {
@@ -139,54 +143,59 @@ namespace Visualizer
 
                 string nodeType2 = journalNodeCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questJournalQuestEntry_NodeType")
                 {
-                    details.AddRange(ParseJournalPath(journalNodeCasted.SelectToken("path.Data")));
+                    subProps.AddRange(ParseJournalPath(journalNodeCasted.SelectToken("path.Data")));
 
-                    details["Send Notification"] = journalNodeCasted.SelectToken("sendNotification").Value<string>() == "1" ? "True" : "False";
-                    details["Track Quest"] = journalNodeCasted.SelectToken("trackQuest").Value<string>() == "1" ? "True" : "False";
-                    details["Version"] = journalNodeCasted.SelectToken("version").Value<string>();
+                    subProps["Send Notification"] = journalNodeCasted.SelectToken("sendNotification").Value<string>() == "1" ? "True" : "False";
+                    subProps["Track Quest"] = journalNodeCasted.SelectToken("trackQuest").Value<string>() == "1" ? "True" : "False";
+                    subProps["Version"] = journalNodeCasted.SelectToken("version").Value<string>();
                 }
                 if (nodeType2 == "questJournalEntry_NodeType")
                 {
-                    details.AddRange(ParseJournalPath(journalNodeCasted.SelectToken("path.Data")));
+                    subProps.AddRange(ParseJournalPath(journalNodeCasted.SelectToken("path.Data")));
 
-                    details["Send Notification"] = journalNodeCasted.SelectToken("sendNotification").Value<string>() == "1" ? "True" : "False";
+                    subProps["Send Notification"] = journalNodeCasted.SelectToken("sendNotification").Value<string>() == "1" ? "True" : "False";
                 }
                 if (nodeType2 == "questJournalBulkUpdate_NodeType")
                 {
-                    details["New Entry State"] = journalNodeCasted.SelectToken("newEntryState.$value").Value<string>();
-                    details.AddRange(ParseJournalPath(journalNodeCasted.SelectToken("path.Data")));
-                    details["Propagate Change"] = journalNodeCasted.SelectToken("propagateChange").Value<string>() == "1" ? "True" : "False";
-                    details["Required Entry State"] = journalNodeCasted.SelectToken("requiredEntryState.$value").Value<string>();
-                    details["Required Entry Type"] = journalNodeCasted.SelectToken("requiredEntryType.$value").Value<string>();
-                    details["Send Notification"] = journalNodeCasted.SelectToken("sendNotification").Value<string>() == "1" ? "True" : "False";
+                    subProps["New Entry State"] = journalNodeCasted.SelectToken("newEntryState.$value").Value<string>();
+                    subProps.AddRange(ParseJournalPath(journalNodeCasted.SelectToken("path.Data")));
+                    subProps["Propagate Change"] = journalNodeCasted.SelectToken("propagateChange").Value<string>() == "1" ? "True" : "False";
+                    subProps["Required Entry State"] = journalNodeCasted.SelectToken("requiredEntryState.$value").Value<string>();
+                    subProps["Required Entry Type"] = journalNodeCasted.SelectToken("requiredEntryType.$value").Value<string>();
+                    subProps["Send Notification"] = journalNodeCasted.SelectToken("sendNotification").Value<string>() == "1" ? "True" : "False";
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questUseWorkspotNodeDefinition")
             {
                 var useWorkspotNodeCasted = node.SelectToken("paramsV1.Data");
 
+                details["Entity Reference"] = ParseGameEntityReference(node.SelectToken("entityReference"));
+
                 string nodeType2 = useWorkspotNodeCasted.SelectToken("$type").Value<string>();
 
-                details["Type"] = GetNameFromClass(nodeType2);
-                details["Entity Reference"] = ParseGameEntityReference(node.SelectToken("entityReference"));
+                NodeProps subProps = new();
 
                 if (nodeType2 == "scnUseSceneWorkspotParamsV1")
                 {
-                    details["Entry Id"] = useWorkspotNodeCasted.SelectToken("entryId.id").Value<string>();
-                    details["Exit Entry Id"] = useWorkspotNodeCasted.SelectToken("exitEntryId.id").Value<string>();
-                    details["Workspot Instance Id"] = useWorkspotNodeCasted.SelectToken("workspotInstanceId.id").Value<string>();
-                    details["Workspot Name"] = GetWorkspotPath(useWorkspotNodeCasted.SelectToken("workspotInstanceId.id").Value<string>(), scnSceneResource);
+                    subProps["Entry Id"] = useWorkspotNodeCasted.SelectToken("entryId.id").Value<string>();
+                    subProps["Exit Entry Id"] = useWorkspotNodeCasted.SelectToken("exitEntryId.id").Value<string>();
+                    subProps["Workspot Instance Id"] = useWorkspotNodeCasted.SelectToken("workspotInstanceId.id").Value<string>();
+                    subProps["Workspot Name"] = GetWorkspotPath(useWorkspotNodeCasted.SelectToken("workspotInstanceId.id").Value<string>(), scnSceneResource);
                 }
                 else if (nodeType2 == "questUseWorkspotParamsV1")
                 {
-                    details["Entry Id"] = useWorkspotNodeCasted.SelectToken("entryId.id").Value<string>();
-                    details["Exit Entry Id"] = useWorkspotNodeCasted.SelectToken("exitEntryId.id").Value<string>();
-                    details["Workspot Node"] = useWorkspotNodeCasted.SelectToken("workspotNode.$value").Value<string>();
+                    subProps["Entry Id"] = useWorkspotNodeCasted.SelectToken("entryId.id").Value<string>();
+                    subProps["Exit Entry Id"] = useWorkspotNodeCasted.SelectToken("exitEntryId.id").Value<string>();
+                    subProps["Workspot Node"] = useWorkspotNodeCasted.SelectToken("workspotNode.$value").Value<string>();
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questSceneManagerNodeDefinition")
             {
@@ -194,23 +203,25 @@ namespace Visualizer
 
                 string nodeType2 = sceneManagerNodeCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questSetTier_NodeType")
                 {
-                    details["Force Empty Hands"] = sceneManagerNodeCasted.SelectToken("forceEmptyHands").Value<string>() == "1" ? "True" : "False";
-                    details["Tier"] = sceneManagerNodeCasted.SelectToken("tier").Value<string>();
+                    subProps["Force Empty Hands"] = sceneManagerNodeCasted.SelectToken("forceEmptyHands").Value<string>() == "1" ? "True" : "False";
+                    subProps["Tier"] = sceneManagerNodeCasted.SelectToken("tier").Value<string>();
                 }
                 if (nodeType2 == "questCameraClippingPlane_NodeType")
                 {
-                    details["Preset"] = sceneManagerNodeCasted.SelectToken("preset").Value<string>();
+                    subProps["Preset"] = sceneManagerNodeCasted.SelectToken("preset").Value<string>();
                 }
                 if (nodeType2 == "questToggleEventExecutionTag_NodeType")
                 {
-                    details["Event Execution Tag"] = sceneManagerNodeCasted.SelectToken("eventExecutionTag.$value").Value<string>();
-                    details["Mute"] = sceneManagerNodeCasted.SelectToken("mute").Value<string>() == "1" ? "True" : "False";
-                    details["Scene File"] = sceneManagerNodeCasted.SelectToken("sceneFile.DepotPath.$value").Value<string>();
+                    subProps["Event Execution Tag"] = sceneManagerNodeCasted.SelectToken("eventExecutionTag.$value").Value<string>();
+                    subProps["Mute"] = sceneManagerNodeCasted.SelectToken("mute").Value<string>() == "1" ? "True" : "False";
+                    subProps["Scene File"] = sceneManagerNodeCasted.SelectToken("sceneFile.DepotPath.$value").Value<string>();
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questTimeManagerNodeDefinition")
             {
@@ -218,20 +229,22 @@ namespace Visualizer
 
                 string nodeType2 = timeManagerNodeCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questPauseTime_NodeType")
                 {
-                    details["Pause"] = timeManagerNodeCasted.SelectToken("pause").Value<string>() == "1" ? "True" : "False";
-                    details["Source"] = timeManagerNodeCasted.SelectToken("source.$value").Value<string>();
+                    subProps["Pause"] = timeManagerNodeCasted.SelectToken("pause").Value<string>() == "1" ? "True" : "False";
+                    subProps["Source"] = timeManagerNodeCasted.SelectToken("source.$value").Value<string>();
                 }
                 if (nodeType2 == "questSetTime_NodeType")
                 {
-                    details["Hours"] = timeManagerNodeCasted.SelectToken("hours").Value<string>();
-                    details["Minutes"] = timeManagerNodeCasted.SelectToken("minutes").Value<string>();
-                    details["Seconds"] = timeManagerNodeCasted.SelectToken("seconds").Value<string>();
-                    details["Source"] = timeManagerNodeCasted.SelectToken("source.$value").Value<string>();
+                    subProps["Hours"] = timeManagerNodeCasted.SelectToken("hours").Value<string>();
+                    subProps["Minutes"] = timeManagerNodeCasted.SelectToken("minutes").Value<string>();
+                    subProps["Seconds"] = timeManagerNodeCasted.SelectToken("seconds").Value<string>();
+                    subProps["Source"] = timeManagerNodeCasted.SelectToken("source.$value").Value<string>();
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questAudioNodeDefinition")
             {
@@ -239,67 +252,69 @@ namespace Visualizer
 
                 string nodeType2 = audioNodeCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questAudioMixNodeType")
                 {
-                    details["Mix Signpost"] = audioNodeCasted.SelectToken("mixSignpost.$value").Value<string>();
+                    subProps["Mix Signpost"] = audioNodeCasted.SelectToken("mixSignpost.$value").Value<string>();
                 }
                 if (nodeType2 == "questAudioEventNodeType")
                 {
-                    details["Ambient Unique Name"] = audioNodeCasted.SelectToken("ambientUniqueName.$value").Value<string>();
+                    subProps["Ambient Unique Name"] = audioNodeCasted.SelectToken("ambientUniqueName.$value").Value<string>();
 
                     var dynamicParams = "";
                     foreach (var p in audioNodeCasted.SelectToken("dynamicParams"))
                     {
                         dynamicParams += (dynamicParams != "" ? ", " : "") + p.SelectToken("$value").Value<string>();
                     }
-                    details["Dynamic Params"] = dynamicParams;
+                    subProps["Dynamic Params"] = dynamicParams;
 
-                    details["Emitter"] = audioNodeCasted.SelectToken("emitter.$value").Value<string>();
-                    details["Event"] = audioNodeCasted.SelectToken("event.event.$value").Value<string>();
+                    subProps["Emitter"] = audioNodeCasted.SelectToken("emitter.$value").Value<string>();
+                    subProps["Event"] = audioNodeCasted.SelectToken("event.event.$value").Value<string>();
 
                     var events = "";
                     foreach (var p in audioNodeCasted.SelectToken("events"))
                     {
                         events += (events != "" ? ", " : "") + p.SelectToken("event.$value").Value<string>();
                     }
-                    details["Events"] = events;
+                    subProps["Events"] = events;
 
-                    details["Is Music"] = audioNodeCasted.SelectToken("isMusic").Value<string>() == "1" ? "True" : "False";
-                    details["Is Player"] = audioNodeCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                    subProps["Is Music"] = audioNodeCasted.SelectToken("isMusic").Value<string>() == "1" ? "True" : "False";
+                    subProps["Is Player"] = audioNodeCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
 
                     var musicEvents = "";
                     foreach (var p in audioNodeCasted.SelectToken("musicEvents"))
                     {
                         musicEvents += (musicEvents != "" ? ", " : "") + p.SelectToken("event.$value").Value<string>();
                     }
-                    details["Music Events"] = musicEvents;
+                    subProps["Music Events"] = musicEvents;
 
-                    details["Object Ref"] = ParseGameEntityReference(audioNodeCasted.SelectToken("objectRef"));
+                    subProps["Object Ref"] = ParseGameEntityReference(audioNodeCasted.SelectToken("objectRef"));
 
                     var paramsStr = "";
                     foreach (var p in audioNodeCasted.SelectToken("params"))
                     {
                         paramsStr += (paramsStr != "" ? ", " : "") + p.SelectToken("name.$value").Value<string>();
                     }
-                    details["Params"] = paramsStr;
+                    subProps["Params"] = paramsStr;
 
                     var switches = "";
                     foreach (var p in audioNodeCasted.SelectToken("switches"))
                     {
                         switches += (switches != "" ? ", " : "") + p.SelectToken("name.$value").Value<string>();
                     }
-                    details["Switches"] = switches;
+                    subProps["Switches"] = switches;
                 }
                 if (nodeType2 == "questAudioSwitchNodeType")
                 {
-                    details["Is Music"] = audioNodeCasted.SelectToken("isMusic").Value<string>() == "1" ? "True" : "False";
-                    details["Is Player"] = audioNodeCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
-                    details["Object Ref"] = ParseGameEntityReference(audioNodeCasted.SelectToken("objectRef"));
-                    details["Switch Name"] = audioNodeCasted.SelectToken("switch.name.$value").Value<string>();
-                    details["Switch Value"] = audioNodeCasted.SelectToken("switch.value.$value").Value<string>();
+                    subProps["Is Music"] = audioNodeCasted.SelectToken("isMusic").Value<string>() == "1" ? "True" : "False";
+                    subProps["Is Player"] = audioNodeCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                    subProps["Object Ref"] = ParseGameEntityReference(audioNodeCasted.SelectToken("objectRef"));
+                    subProps["Switch Name"] = audioNodeCasted.SelectToken("switch.name.$value").Value<string>();
+                    subProps["Switch Value"] = audioNodeCasted.SelectToken("switch.value.$value").Value<string>();
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questEventManagerNodeDefinition")
             {
@@ -336,22 +351,24 @@ namespace Visualizer
 
                 string nodeType2 = envManagerNodeCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questPlayEnv_SetWeather")
                 {
-                    details["Blend Time"] = envManagerNodeCasted.SelectToken("blendTime").Value<string>();
-                    details["Priority"] = envManagerNodeCasted.SelectToken("priority").Value<string>();
-                    details["Reset"] = envManagerNodeCasted.SelectToken("reset").Value<string>() == "1" ? "True" : "False";
-                    details["Source"] = envManagerNodeCasted.SelectToken("source.$value").Value<string>();
-                    details["Weather ID"] = envManagerNodeCasted.SelectToken("weatherID.$value").Value<string>();
+                    subProps["Blend Time"] = envManagerNodeCasted.SelectToken("blendTime").Value<string>();
+                    subProps["Priority"] = envManagerNodeCasted.SelectToken("priority").Value<string>();
+                    subProps["Reset"] = envManagerNodeCasted.SelectToken("reset").Value<string>() == "1" ? "True" : "False";
+                    subProps["Source"] = envManagerNodeCasted.SelectToken("source.$value").Value<string>();
+                    subProps["Weather ID"] = envManagerNodeCasted.SelectToken("weatherID.$value").Value<string>();
                 }
                 if (nodeType2 == "questPlayEnv_NodeType")
                 {
-                    details["Blend Time"] = envManagerNodeCasted.SelectToken("params.blendTime").Value<string>();
-                    details["Enable"] = envManagerNodeCasted.SelectToken("params.enable").Value<string>() == "1" ? "True" : "False";
-                    details["Env Params"] = envManagerNodeCasted.SelectToken("params.envParams.DepotPath.$value").Value<string>();
+                    subProps["Blend Time"] = envManagerNodeCasted.SelectToken("params.blendTime").Value<string>();
+                    subProps["Enable"] = envManagerNodeCasted.SelectToken("params.enable").Value<string>() == "1" ? "True" : "False";
+                    subProps["Env Params"] = envManagerNodeCasted.SelectToken("params.envParams.DepotPath.$value").Value<string>();
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questRenderFxManagerNodeDefinition")
             {
@@ -359,14 +376,16 @@ namespace Visualizer
 
                 string nodeType2 = renderFxManagerNodeCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questSetFadeInOut_NodeType")
                 {
-                    details["Duration"] = renderFxManagerNodeCasted.SelectToken("duration").Value<string>();
-                    details["Fade Color"] = ParseColor(renderFxManagerNodeCasted.SelectToken("fadeColor"));
-                    details["Fade In"] = renderFxManagerNodeCasted.SelectToken("fadeIn").Value<string>() == "1" ? "True" : "False";
+                    subProps["Duration"] = renderFxManagerNodeCasted.SelectToken("duration").Value<string>();
+                    subProps["Fade Color"] = ParseColor(renderFxManagerNodeCasted.SelectToken("fadeColor"));
+                    subProps["Fade In"] = renderFxManagerNodeCasted.SelectToken("fadeIn").Value<string>() == "1" ? "True" : "False";
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questUIManagerNodeDefinition")
             {
@@ -374,44 +393,44 @@ namespace Visualizer
 
                 string nodeType2 = uiManagerNodeCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questSetHUDEntryForcedVisibility_NodeType")
                 {
                     var p = uiManagerNodeCasted.SelectToken("hudEntryName");
                     for (int i = 0; i < p.Count(); i++)
                     {
-                        details["Hud Entry Name #" + i] = p[i].SelectToken("$value").Value<string>();
+                        subProps["Hud Entry Name #" + i] = p[i].SelectToken("$value").Value<string>();
                     }
 
-                    details["Hud Visibility Preset"] = uiManagerNodeCasted.SelectToken("hudVisibilityPreset.$value").Value<string>();
-                    details["Skip Animation"] = uiManagerNodeCasted.SelectToken("skipAnimation").Value<string>() == "1" ? "True" : "False";
-                    details["Use Preset"] = uiManagerNodeCasted.SelectToken("usePreset").Value<string>() == "1" ? "True" : "False";
-                    details["Visibility"] = uiManagerNodeCasted.SelectToken("visibility").Value<string>();
+                    subProps["Hud Visibility Preset"] = uiManagerNodeCasted.SelectToken("hudVisibilityPreset.$value").Value<string>();
+                    subProps["Skip Animation"] = uiManagerNodeCasted.SelectToken("skipAnimation").Value<string>() == "1" ? "True" : "False";
+                    subProps["Use Preset"] = uiManagerNodeCasted.SelectToken("usePreset").Value<string>() == "1" ? "True" : "False";
+                    subProps["Visibility"] = uiManagerNodeCasted.SelectToken("visibility").Value<string>();
                 }
                 if (nodeType2 == "questSwitchNameplate_NodeType")
                 {
-                    details["Alternative Name"] = uiManagerNodeCasted.SelectToken("alternativeName").Value<string>() == "1" ? "True" : "False";
-                    details["Enable"] = uiManagerNodeCasted.SelectToken("enable").Value<string>() == "1" ? "True" : "False";
-                    details["Is Player"] = uiManagerNodeCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
-                    details["Puppet Ref"] = ParseGameEntityReference(uiManagerNodeCasted.SelectToken("puppetRef"));
+                    subProps["Alternative Name"] = uiManagerNodeCasted.SelectToken("alternativeName").Value<string>() == "1" ? "True" : "False";
+                    subProps["Enable"] = uiManagerNodeCasted.SelectToken("enable").Value<string>() == "1" ? "True" : "False";
+                    subProps["Is Player"] = uiManagerNodeCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                    subProps["Puppet Ref"] = ParseGameEntityReference(uiManagerNodeCasted.SelectToken("puppetRef"));
                 }
                 if (nodeType2 == "questWarningMessage_NodeType")
                 {
-                    details["Duration"] = uiManagerNodeCasted.SelectToken("duration").Value<string>();
-                    details["Instant"] = uiManagerNodeCasted.SelectToken("instant").Value<string>() == "1" ? "True" : "False";
-                    details["Localized Message"] = uiManagerNodeCasted.SelectToken("localizedMessage.value").Value<string>();
-                    details["Message"] = uiManagerNodeCasted.SelectToken("message").Value<string>();
-                    details["Show"] = uiManagerNodeCasted.SelectToken("show").Value<string>() == "1" ? "True" : "False";
-                    details["Message Type"] = uiManagerNodeCasted.SelectToken("type").Value<string>();
+                    subProps["Duration"] = uiManagerNodeCasted.SelectToken("duration").Value<string>();
+                    subProps["Instant"] = uiManagerNodeCasted.SelectToken("instant").Value<string>() == "1" ? "True" : "False";
+                    subProps["Localized Message"] = uiManagerNodeCasted.SelectToken("localizedMessage.value").Value<string>();
+                    subProps["Message"] = uiManagerNodeCasted.SelectToken("message").Value<string>();
+                    subProps["Show"] = uiManagerNodeCasted.SelectToken("show").Value<string>() == "1" ? "True" : "False";
+                    subProps["Message Type"] = uiManagerNodeCasted.SelectToken("type").Value<string>();
                 }
                 if (nodeType2 == "questProgressBar_NodeType")
                 {
-                    details["Bottom Text"] = uiManagerNodeCasted.SelectToken("bottomText.value").Value<string>();
-                    details["Duration"] = uiManagerNodeCasted.SelectToken("duration").Value<string>();
-                    details["Show"] = uiManagerNodeCasted.SelectToken("show").Value<string>() == "1" ? "True" : "False";
-                    details["Text"] = uiManagerNodeCasted.SelectToken("text.value").Value<string>();
-                    details["Progress Bar Type"] = uiManagerNodeCasted.SelectToken("type").Value<string>();
+                    subProps["Bottom Text"] = uiManagerNodeCasted.SelectToken("bottomText.value").Value<string>();
+                    subProps["Duration"] = uiManagerNodeCasted.SelectToken("duration").Value<string>();
+                    subProps["Show"] = uiManagerNodeCasted.SelectToken("show").Value<string>() == "1" ? "True" : "False";
+                    subProps["Text"] = uiManagerNodeCasted.SelectToken("text.value").Value<string>();
+                    subProps["Progress Bar Type"] = uiManagerNodeCasted.SelectToken("type").Value<string>();
                 }
                 if (nodeType2 == "questTutorial_NodeType")
                 {
@@ -419,50 +438,54 @@ namespace Visualizer
 
                     string nodeType3 = tutorialCasted.SelectToken("$type").Value<string>();
 
-                    details["Sub Manager"] = GetNameFromClass(nodeType3);
+                    NodeProps subSubProps = new();
 
                     if (nodeType3 == "questShowPopup_NodeSubType")
                     {
-                        details["Close At Input"] = tutorialCasted.SelectToken("closeAtInput").Value<string>() == "1" ? "True" : "False";
-                        details["Close Current Popup"] = tutorialCasted.SelectToken("closeCurrentPopup").Value<string>() == "1" ? "True" : "False";
-                        details["Hide In Menu"] = tutorialCasted.SelectToken("hideInMenu").Value<string>() == "1" ? "True" : "False";
-                        details["Ignore Disabled Tutorials"] = tutorialCasted.SelectToken("ignoreDisabledTutorials").Value<string>() == "1" ? "True" : "False";
-                        details["Lock Player Movement"] = tutorialCasted.SelectToken("lockPlayerMovement").Value<string>() == "1" ? "True" : "False";
-                        details["Margin"] = ParseMargin(tutorialCasted.SelectToken("margin"));
-                        details["Open"] = tutorialCasted.SelectToken("open").Value<string>() == "1" ? "True" : "False";
-                        details.AddRange(ParseJournalPath(tutorialCasted.SelectToken("path")));
-                        details["Pause Game"] = tutorialCasted.SelectToken("pauseGame").Value<string>() == "1" ? "True" : "False";
-                        details["Position"] = tutorialCasted.SelectToken("position").Value<string>();
-                        details["Screen Mode"] = tutorialCasted.SelectToken("screenMode").Value<string>();
-                        details["Video"] = tutorialCasted.SelectToken("video.DepotPath.$value").Value<string>();
-                        details["Video Type"] = tutorialCasted.SelectToken("videoType").Value<string>();
+                        subSubProps["Close At Input"] = tutorialCasted.SelectToken("closeAtInput").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Close Current Popup"] = tutorialCasted.SelectToken("closeCurrentPopup").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Hide In Menu"] = tutorialCasted.SelectToken("hideInMenu").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Ignore Disabled Tutorials"] = tutorialCasted.SelectToken("ignoreDisabledTutorials").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Lock Player Movement"] = tutorialCasted.SelectToken("lockPlayerMovement").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Margin"] = ParseMargin(tutorialCasted.SelectToken("margin"));
+                        subSubProps["Open"] = tutorialCasted.SelectToken("open").Value<string>() == "1" ? "True" : "False";
+                        subSubProps.AddRange(ParseJournalPath(tutorialCasted.SelectToken("path")));
+                        subSubProps["Pause Game"] = tutorialCasted.SelectToken("pauseGame").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Position"] = tutorialCasted.SelectToken("position").Value<string>();
+                        subSubProps["Screen Mode"] = tutorialCasted.SelectToken("screenMode").Value<string>();
+                        subSubProps["Video"] = tutorialCasted.SelectToken("video.DepotPath.$value").Value<string>();
+                        subSubProps["Video Type"] = tutorialCasted.SelectToken("videoType").Value<string>();
                     }
                     if (nodeType3 == "questShowBracket_NodeSubType")
                     {
-                        details["Anchor"] = tutorialCasted.SelectToken("anchor").Value<string>();
-                        details["Bracket ID"] = tutorialCasted.SelectToken("bracketID").Value<string>();
-                        details["Bracket Type"] = tutorialCasted.SelectToken("bracketType").Value<string>();
-                        details["Ignore Disabled Tutorials"] = tutorialCasted.SelectToken("ignoreDisabledTutorials").Value<string>() == "1" ? "True" : "False";
-                        details["Offset"] = tutorialCasted.SelectToken("offset").Value<string>();
-                        details["Size"] = tutorialCasted.SelectToken("size").Value<string>();
-                        details["Visible"] = tutorialCasted.SelectToken("visible").Value<string>() == "1" ? "True" : "False";
-                        details["Visible On UI Layer"] = tutorialCasted.SelectToken("visibleOnUILayer").Value<string>();
+                        subSubProps["Anchor"] = tutorialCasted.SelectToken("anchor").Value<string>();
+                        subSubProps["Bracket ID"] = tutorialCasted.SelectToken("bracketID").Value<string>();
+                        subSubProps["Bracket Type"] = tutorialCasted.SelectToken("bracketType").Value<string>();
+                        subSubProps["Ignore Disabled Tutorials"] = tutorialCasted.SelectToken("ignoreDisabledTutorials").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Offset"] = tutorialCasted.SelectToken("offset").Value<string>();
+                        subSubProps["Size"] = tutorialCasted.SelectToken("size").Value<string>();
+                        subSubProps["Visible"] = tutorialCasted.SelectToken("visible").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Visible On UI Layer"] = tutorialCasted.SelectToken("visibleOnUILayer").Value<string>();
                     }
                     if (nodeType3 == "questShowHighlight_NodeSubType")
                     {
-                        details["Enable"] = tutorialCasted.SelectToken("enable").Value<string>() == "1" ? "True" : "False";
-                        details["Entity Reference"] = ParseGameEntityReference(tutorialCasted.SelectToken("entityReference"));
+                        subSubProps["Enable"] = tutorialCasted.SelectToken("enable").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Entity Reference"] = ParseGameEntityReference(tutorialCasted.SelectToken("entityReference"));
                     }
                     if (nodeType3 == "questShowOverlay_NodeSubType")
                     {
-                        details["Hide On Input"] = tutorialCasted.SelectToken("hideOnInput").Value<string>() == "1" ? "True" : "False";
-                        details["Library Item Name"] = tutorialCasted.SelectToken("libraryItemName").Value<string>();
-                        details["Lock Player Movement"] = tutorialCasted.SelectToken("lockPlayerMovement").Value<string>() == "1" ? "True" : "False";
-                        details["Overlay Library"] = tutorialCasted.SelectToken("overlayLibrary.DepotPath.$value").Value<string>();
-                        details["Pause Game"] = tutorialCasted.SelectToken("pauseGame").Value<string>() == "1" ? "True" : "False";
-                        details["Visible"] = tutorialCasted.SelectToken("visible").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Hide On Input"] = tutorialCasted.SelectToken("hideOnInput").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Library Item Name"] = tutorialCasted.SelectToken("libraryItemName").Value<string>();
+                        subSubProps["Lock Player Movement"] = tutorialCasted.SelectToken("lockPlayerMovement").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Overlay Library"] = tutorialCasted.SelectToken("overlayLibrary.DepotPath.$value").Value<string>();
+                        subSubProps["Pause Game"] = tutorialCasted.SelectToken("pauseGame").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Visible"] = tutorialCasted.SelectToken("visible").Value<string>() == "1" ? "True" : "False";
                     }
+
+                    details["Type", nodeType3] = subSubProps;
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questTeleportPuppetNodeDefinition")
             {
@@ -483,14 +506,14 @@ namespace Visualizer
 
                 string nodeType2 = worldDataManagerCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questShowWorldNode_NodeType")
                 {
-                    details["Component Name"] = worldDataManagerCasted.SelectToken("componentName.$value").Value<string>();
-                    details["Is Player"] = worldDataManagerCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
-                    details["Object Ref"] = worldDataManagerCasted.SelectToken("objectRef.$value").Value<string>();
-                    details["Show"] = worldDataManagerCasted.SelectToken("show").Value<string>() == "1" ? "True" : "False";
+                    subProps["Component Name"] = worldDataManagerCasted.SelectToken("componentName.$value").Value<string>();
+                    subProps["Is Player"] = worldDataManagerCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                    subProps["Object Ref"] = worldDataManagerCasted.SelectToken("objectRef.$value").Value<string>();
+                    subProps["Show"] = worldDataManagerCasted.SelectToken("show").Value<string>() == "1" ? "True" : "False";
                 }
                 if (nodeType2 == "questTogglePrefabVariant_NodeType")
                 {
@@ -500,7 +523,7 @@ namespace Visualizer
                     int counter = 1;
                     foreach (var re in paramsArr)
                     {
-                        details["#" + counter + " Prefab Node Ref"] = re.SelectToken("prefabNodeRef.$value").Value<string>();
+                        subProps["#" + counter + " Prefab Node Ref"] = re.SelectToken("prefabNodeRef.$value").Value<string>();
 
                         var variantStates = re.SelectToken("variantStates");
                         //details["#" + counter + " Variant States Count"] = variantStates?.Count.ToString()!;
@@ -508,8 +531,8 @@ namespace Visualizer
                         int counter2 = 1;
                         foreach (var vs in variantStates)
                         {
-                            details["#" + counter + " Variant State #" + counter2 + " Name"] = vs.SelectToken("name.$value").Value<string>();
-                            details["#" + counter + " Variant State #" + counter2 + " Show"] = vs.SelectToken("show").Value<string>() == "1" ? "True" : "False";
+                            subProps["#" + counter + " Variant State #" + counter2 + " Name"] = vs.SelectToken("name.$value").Value<string>();
+                            subProps["#" + counter + " Variant State #" + counter2 + " Show"] = vs.SelectToken("show").Value<string>() == "1" ? "True" : "False";
 
                             counter2++;
                         }
@@ -519,11 +542,13 @@ namespace Visualizer
                 }
                 if (nodeType2 == "questPrefetchStreaming_NodeTypeV2")
                 {
-                    details["Force Enable"] = worldDataManagerCasted.SelectToken("forceEnable").Value<string>() == "1" ? "True" : "False";
-                    details["Max Distance"] = worldDataManagerCasted.SelectToken("maxDistance").Value<string>();
-                    details["Prefetch Position Ref"] = worldDataManagerCasted.SelectToken("prefetchPositionRef.$value").Value<string>();
-                    details["Use Streaming Occlusion"] = worldDataManagerCasted.SelectToken("useStreamingOcclusion").Value<string>() == "1" ? "True" : "False";
+                    subProps["Force Enable"] = worldDataManagerCasted.SelectToken("forceEnable").Value<string>() == "1" ? "True" : "False";
+                    subProps["Max Distance"] = worldDataManagerCasted.SelectToken("maxDistance").Value<string>();
+                    subProps["Prefetch Position Ref"] = worldDataManagerCasted.SelectToken("prefetchPositionRef.$value").Value<string>();
+                    subProps["Use Streaming Occlusion"] = worldDataManagerCasted.SelectToken("useStreamingOcclusion").Value<string>() == "1" ? "True" : "False";
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questSpawnManagerNodeDefinition")
             {
@@ -539,30 +564,34 @@ namespace Visualizer
 
                     string nodeType2 = actionCasted.SelectToken("$type").Value<string>();
 
+                    NodeProps subProps = new();
+
                     if (nodeType2 == "questScene_NodeType")
                     {
-                        details["#" + counter + " Action"] = actionCasted.SelectToken("action").Value<string>();
-                        details["#" + counter + " Entity Reference"] = ParseGameEntityReference(actionCasted.SelectToken("entityReference"));
+                        subProps["#" + counter + " Action"] = actionCasted.SelectToken("action").Value<string>();
+                        subProps["#" + counter + " Entity Reference"] = ParseGameEntityReference(actionCasted.SelectToken("entityReference"));
                     }
                     if (nodeType2 == "questCommunityTemplate_NodeType")
                     {
-                        details["#" + counter + " Action"] = actionCasted.SelectToken("action").Value<string>();
-                        details["#" + counter + " Community Entry Name"] = actionCasted.SelectToken("communityEntryName.$value").Value<string>();
-                        details["#" + counter + " Community Entry Phase Name"] = actionCasted.SelectToken("communityEntryPhaseName.$value").Value<string>();
-                        details["#" + counter + " Spawner Reference"] = actionCasted.SelectToken("spawnerReference.$value").Value<string>();
+                        subProps["#" + counter + " Action"] = actionCasted.SelectToken("action").Value<string>();
+                        subProps["#" + counter + " Community Entry Name"] = actionCasted.SelectToken("communityEntryName.$value").Value<string>();
+                        subProps["#" + counter + " Community Entry Phase Name"] = actionCasted.SelectToken("communityEntryPhaseName.$value").Value<string>();
+                        subProps["#" + counter + " Spawner Reference"] = actionCasted.SelectToken("spawnerReference.$value").Value<string>();
                     }
                     if (nodeType2 == "questSpawnSet_NodeType")
                     {
-                        details["#" + counter + " Action"] = actionCasted.SelectToken("action").Value<string>();
-                        details["#" + counter + " Entry Name"] = actionCasted.SelectToken("entryName.$value").Value<string>();
-                        details["#" + counter + " Phase Name"] = actionCasted.SelectToken("phaseName.$value").Value<string>();
-                        details["#" + counter + " Reference"] = actionCasted.SelectToken("reference.$value").Value<string>();
+                        subProps["#" + counter + " Action"] = actionCasted.SelectToken("action").Value<string>();
+                        subProps["#" + counter + " Entry Name"] = actionCasted.SelectToken("entryName.$value").Value<string>();
+                        subProps["#" + counter + " Phase Name"] = actionCasted.SelectToken("phaseName.$value").Value<string>();
+                        subProps["#" + counter + " Reference"] = actionCasted.SelectToken("reference.$value").Value<string>();
                     }
                     if (nodeType2 == "questSpawner_NodeType")
                     {
-                        details["#" + counter + " Action"] = actionCasted.SelectToken("action").Value<string>();
-                        details["#" + counter + " Spawner Reference"] = actionCasted.SelectToken("spawnerReference.$value").Value<string>();
+                        subProps["#" + counter + " Action"] = actionCasted.SelectToken("action").Value<string>();
+                        subProps["#" + counter + " Spawner Reference"] = actionCasted.SelectToken("spawnerReference.$value").Value<string>();
                     }
+
+                    details["Type", nodeType2] = subProps;
 
                     counter++;
                 }
@@ -573,11 +602,11 @@ namespace Visualizer
 
                 string nodeType2 = gameManagerCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questGameplayRestrictions_NodeType")
                 {
-                    details["Action"] = gameManagerCasted.SelectToken("action").Value<string>();
+                    subProps["Action"] = gameManagerCasted.SelectToken("action").Value<string>();
 
                     var restr = gameManagerCasted.SelectToken("restrictionIDs");
                     //details["Restrictions"] = restr?.Count.ToString()!;
@@ -585,16 +614,16 @@ namespace Visualizer
                     int counter = 1;
                     foreach (var re in restr)
                     {
-                        details["#" + counter] = re.SelectToken("$value").Value<string>();
+                        subProps["#" + counter] = re.SelectToken("$value").Value<string>();
 
                         counter++;
                     }
                 }
                 if (nodeType2 == "questRumble_NodeType")
                 {
-                    details["Is Player"] = gameManagerCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
-                    details["Object Ref"] = ParseGameEntityReference(gameManagerCasted.SelectToken("objectRef"));
-                    details["Rumble Event"] = gameManagerCasted.SelectToken("rumbleEvent.$value").Value<string>();
+                    subProps["Is Player"] = gameManagerCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                    subProps["Object Ref"] = ParseGameEntityReference(gameManagerCasted.SelectToken("objectRef"));
+                    subProps["Rumble Event"] = gameManagerCasted.SelectToken("rumbleEvent.$value").Value<string>();
                 }
                 if (nodeType2 == "questContentTokenManager_NodeType")
                 {
@@ -602,15 +631,19 @@ namespace Visualizer
 
                     string nodeType3 = contentTokenManagerNodeCasted.SelectToken("$type").Value<string>();
 
-                    details["Sub Manager"] = GetNameFromClass(nodeType3);
+                    NodeProps subSubProps = new();
 
                     if (nodeType3 == "questBlockTokenActivation_NodeSubType")
                     {
-                        details["Action"] = contentTokenManagerNodeCasted.SelectToken("action").Value<string>();
-                        details["Reset Token Spawn Timer"] = contentTokenManagerNodeCasted.SelectToken("resetTokenSpawnTimer").Value<string>() == "1" ? "True" : "False";
-                        details["Source"] = contentTokenManagerNodeCasted.SelectToken("source.$value").Value<string>();
+                        subSubProps["Action"] = contentTokenManagerNodeCasted.SelectToken("action").Value<string>();
+                        subSubProps["Reset Token Spawn Timer"] = contentTokenManagerNodeCasted.SelectToken("resetTokenSpawnTimer").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Source"] = contentTokenManagerNodeCasted.SelectToken("source.$value").Value<string>();
                     }
+
+                    details["Type", nodeType3] = subSubProps;
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questVoicesetManagerNodeDefinition")
             {
@@ -618,7 +651,7 @@ namespace Visualizer
 
                 string nodeType2 = voicesetManagerCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questPlayVoiceset_NodeType")
                 {
@@ -628,20 +661,22 @@ namespace Visualizer
                     int counter = 1;
                     foreach (var param in paramsArr)
                     {
-                        details["#" + counter + " Is Player"] = param.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
-                        details["#" + counter + " Override Visual Style"] = param.SelectToken("overrideVisualStyle").Value<string>() == "1" ? "True" : "False";
-                        details["#" + counter + " Override Voiceover Expression"] = param.SelectToken("overrideVoiceoverExpression").Value<string>() == "1" ? "True" : "False";
-                        details["#" + counter + " Overriding Visual Style"] = param.SelectToken("overridingVisualStyle").Value<string>();
-                        details["#" + counter + " Overriding Voiceover Context"] = param.SelectToken("overridingVoiceoverContext").Value<string>();
-                        details["#" + counter + " Overriding Voiceover Expression"] = param.SelectToken("overridingVoiceoverExpression").Value<string>();
-                        details["#" + counter + " Play Only Grunt"] = param.SelectToken("playOnlyGrunt").Value<string>() == "1" ? "True" : "False";
-                        details["#" + counter + " Puppet Ref"] = ParseGameEntityReference(param.SelectToken("puppetRef"));
-                        details["#" + counter + " Use Voiceset System"] = param.SelectToken("useVoicesetSystem").Value<string>() == "1" ? "True" : "False";
-                        details["#" + counter + " Voiceset Name"] = param.SelectToken("voicesetName.$value").Value<string>();
+                        subProps["#" + counter + " Is Player"] = param.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                        subProps["#" + counter + " Override Visual Style"] = param.SelectToken("overrideVisualStyle").Value<string>() == "1" ? "True" : "False";
+                        subProps["#" + counter + " Override Voiceover Expression"] = param.SelectToken("overrideVoiceoverExpression").Value<string>() == "1" ? "True" : "False";
+                        subProps["#" + counter + " Overriding Visual Style"] = param.SelectToken("overridingVisualStyle").Value<string>();
+                        subProps["#" + counter + " Overriding Voiceover Context"] = param.SelectToken("overridingVoiceoverContext").Value<string>();
+                        subProps["#" + counter + " Overriding Voiceover Expression"] = param.SelectToken("overridingVoiceoverExpression").Value<string>();
+                        subProps["#" + counter + " Play Only Grunt"] = param.SelectToken("playOnlyGrunt").Value<string>() == "1" ? "True" : "False";
+                        subProps["#" + counter + " Puppet Ref"] = ParseGameEntityReference(param.SelectToken("puppetRef"));
+                        subProps["#" + counter + " Use Voiceset System"] = param.SelectToken("useVoicesetSystem").Value<string>() == "1" ? "True" : "False";
+                        subProps["#" + counter + " Voiceset Name"] = param.SelectToken("voicesetName.$value").Value<string>();
 
                         counter++;
                     }
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questInteractiveObjectManagerNodeDefinition")
             {
@@ -649,7 +684,7 @@ namespace Visualizer
 
                 string nodeType2 = interactiveObjectManagerCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questDeviceManager_NodeType")
                 {
@@ -666,17 +701,19 @@ namespace Visualizer
                         {
                             actionProperties += (actionProperties != "" ? ", " : "") + p.SelectToken("name.$value").Value<string>();
                         }
-                        details["#" + counter + " Action Properties"] = actionProperties;
+                        subProps["#" + counter + " Action Properties"] = actionProperties;
 
-                        details["#" + counter + " Device Action"] = paramCasted.SelectToken("deviceAction.$value").Value<string>();
-                        details["#" + counter + " Device Controller Class"] = paramCasted.SelectToken("deviceControllerClass.$value").Value<string>();
-                        details["#" + counter + " Entity Ref"] = ParseGameEntityReference(paramCasted.SelectToken("entityRef"));
-                        details["#" + counter + " Object Ref"] = paramCasted.SelectToken("objectRef.$value").Value<string>();
-                        details["#" + counter + " Slot Name"] = paramCasted.SelectToken("slotName.$value").Value<string>();
+                        subProps["#" + counter + " Device Action"] = paramCasted.SelectToken("deviceAction.$value").Value<string>();
+                        subProps["#" + counter + " Device Controller Class"] = paramCasted.SelectToken("deviceControllerClass.$value").Value<string>();
+                        subProps["#" + counter + " Entity Ref"] = ParseGameEntityReference(paramCasted.SelectToken("entityRef"));
+                        subProps["#" + counter + " Object Ref"] = paramCasted.SelectToken("objectRef.$value").Value<string>();
+                        subProps["#" + counter + " Slot Name"] = paramCasted.SelectToken("slotName.$value").Value<string>();
 
                         counter++;
                     }
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questCharacterManagerNodeDefinition")
             {
@@ -684,7 +721,7 @@ namespace Visualizer
 
                 string nodeType2 = characterManagerCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questCharacterManagerParameters_NodeType")
                 {
@@ -692,18 +729,20 @@ namespace Visualizer
 
                     string nodeType3 = charParamsNodeCasted.SelectToken("$type").Value<string>();
 
-                    details["Sub Manager"] = GetNameFromClass(nodeType3);
+                    NodeProps subSubProps = new();
 
                     if (nodeType3 == "questCharacterManagerParameters_SetStatusEffect")
                     {
-                        details["Is Player"] = charParamsNodeCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
-                        details["Is Player Status Effect Source"] = charParamsNodeCasted.SelectToken("isPlayerStatusEffectSource").Value<string>() == "1" ? "True" : "False";
-                        details["Puppet Ref"] = ParseGameEntityReference(charParamsNodeCasted.SelectToken("puppetRef"));
+                        subSubProps["Is Player"] = charParamsNodeCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Is Player Status Effect Source"] = charParamsNodeCasted.SelectToken("isPlayerStatusEffectSource").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Puppet Ref"] = ParseGameEntityReference(charParamsNodeCasted.SelectToken("puppetRef"));
                         //setStatusEffectNodeCasted?.RecordSelector
-                        details["Set"] = charParamsNodeCasted.SelectToken("set").Value<string>() == "1" ? "True" : "False";
-                        details["Status Effect ID"] = charParamsNodeCasted.SelectToken("statusEffectID.$value").Value<string>();
-                        details["Status Effect Source Object"] = ParseGameEntityReference(charParamsNodeCasted.SelectToken("statusEffectSourceObject"));
+                        subSubProps["Set"] = charParamsNodeCasted.SelectToken("set").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Status Effect ID"] = charParamsNodeCasted.SelectToken("statusEffectID.$value").Value<string>();
+                        subSubProps["Status Effect Source Object"] = ParseGameEntityReference(charParamsNodeCasted.SelectToken("statusEffectSourceObject"));
                     }
+
+                    details["Type", nodeType3] = subSubProps;
                 }
                 if (nodeType2 == "questCharacterManagerVisuals_NodeType")
                 {
@@ -711,14 +750,14 @@ namespace Visualizer
 
                     string nodeType3 = charVisualsNodeCasted.SelectToken("$type").Value<string>();
 
-                    details["Sub Manager"] = GetNameFromClass(nodeType3);
+                    NodeProps subSubProps = new();
 
                     if (nodeType3 == "questCharacterManagerVisuals_GenitalsManager")
                     {
-                        details["Body Group Name"] = charVisualsNodeCasted.SelectToken("bodyGroupName.$value").Value<string>();
-                        details["Enable"] = charVisualsNodeCasted.SelectToken("enable").Value<string>() == "1" ? "True" : "False";
-                        details["Is Player"] = charVisualsNodeCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
-                        details["Puppet Ref"] = ParseGameEntityReference(charVisualsNodeCasted.SelectToken("puppetRef"));
+                        subSubProps["Body Group Name"] = charVisualsNodeCasted.SelectToken("bodyGroupName.$value").Value<string>();
+                        subSubProps["Enable"] = charVisualsNodeCasted.SelectToken("enable").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Is Player"] = charVisualsNodeCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Puppet Ref"] = ParseGameEntityReference(charVisualsNodeCasted.SelectToken("puppetRef"));
                     }
                     if (nodeType3 == "questCharacterManagerVisuals_ChangeEntityAppearance")
                     {
@@ -727,13 +766,15 @@ namespace Visualizer
                         int counter = 1;
                         foreach (var appearance in appearancesArr)
                         {
-                            details["#" + counter + " Appearance Name"] = appearance.SelectToken("appearanceName.$value").Value<string>();
-                            details["#" + counter + " Is Player"] = appearance.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
-                            details["#" + counter + " Puppet Ref"] = ParseGameEntityReference(appearance.SelectToken("puppetRef"));
+                            subSubProps["#" + counter + " Appearance Name"] = appearance.SelectToken("appearanceName.$value").Value<string>();
+                            subSubProps["#" + counter + " Is Player"] = appearance.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                            subSubProps["#" + counter + " Puppet Ref"] = ParseGameEntityReference(appearance.SelectToken("puppetRef"));
 
                             counter++;
                         }
                     }
+
+                    details["Type", nodeType3] = subSubProps;
                 }
                 if (nodeType2 == "questCharacterManagerCombat_NodeType")
                 {
@@ -741,19 +782,23 @@ namespace Visualizer
 
                     string nodeType3 = charCombatNodeCasted.SelectToken("$type").Value<string>();
 
-                    details["Sub Manager"] = GetNameFromClass(nodeType3);
+                    NodeProps subSubProps = new();
 
                     if (nodeType3 == "questCharacterManagerCombat_EquipWeapon")
                     {
-                        details["Equip"] = charCombatNodeCasted.SelectToken("equip").Value<string>() == "1" ? "True" : "False";
-                        details["Equip Last Weapon"] = charCombatNodeCasted.SelectToken("equipLastWeapon").Value<string>() == "1" ? "True" : "False";
-                        details["Force First Equip"] = charCombatNodeCasted.SelectToken("forceFirstEquip").Value<string>() == "1" ? "True" : "False";
-                        details["Ignore State Machine"] = charCombatNodeCasted.SelectToken("ignoreStateMachine").Value<string>() == "1" ? "True" : "False";
-                        details["Instant"] = charCombatNodeCasted.SelectToken("instant").Value<string>() == "1" ? "True" : "False";
-                        details["Slot ID"] = charCombatNodeCasted.SelectToken("slotID.$value").Value<string>();
-                        details["Weapon ID"] = charCombatNodeCasted.SelectToken("weaponID.$value").Value<string>();
+                        subSubProps["Equip"] = charCombatNodeCasted.SelectToken("equip").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Equip Last Weapon"] = charCombatNodeCasted.SelectToken("equipLastWeapon").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Force First Equip"] = charCombatNodeCasted.SelectToken("forceFirstEquip").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Ignore State Machine"] = charCombatNodeCasted.SelectToken("ignoreStateMachine").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Instant"] = charCombatNodeCasted.SelectToken("instant").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Slot ID"] = charCombatNodeCasted.SelectToken("slotID.$value").Value<string>();
+                        subSubProps["Weapon ID"] = charCombatNodeCasted.SelectToken("weaponID.$value").Value<string>();
                     }
+
+                    details["Type", nodeType3] = subSubProps;
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questItemManagerNodeDefinition")
             {
@@ -761,7 +806,7 @@ namespace Visualizer
 
                 string nodeType2 = itemManagerCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questAddRemoveItem_NodeType")
                 {
@@ -773,36 +818,38 @@ namespace Visualizer
                     {
                         var paramCasted = param.SelectToken("Data");
 
-                        details["#" + counter + " Entity Ref"] = GetNameFromUniversalRef(paramCasted.SelectToken("entityRef"));
-                        details["#" + counter + " Flag Item Added Callback As Silent"] = paramCasted.SelectToken("flagItemAddedCallbackAsSilent").Value<string>() == "1" ? "True" : "False";
-                        details["#" + counter + " Is Player"] = paramCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
-                        details["#" + counter + " Item ID"] = paramCasted.SelectToken("itemID.$value").Value<string>();
+                        subProps["#" + counter + " Entity Ref"] = GetNameFromUniversalRef(paramCasted.SelectToken("entityRef"));
+                        subProps["#" + counter + " Flag Item Added Callback As Silent"] = paramCasted.SelectToken("flagItemAddedCallbackAsSilent").Value<string>() == "1" ? "True" : "False";
+                        subProps["#" + counter + " Is Player"] = paramCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                        subProps["#" + counter + " Item ID"] = paramCasted.SelectToken("itemID.$value").Value<string>();
 
                         var itemToIgnore = "";
                         foreach (var p in paramCasted.SelectToken("itemIDsToIgnoreOnRemove"))
                         {
                             itemToIgnore += (itemToIgnore != "" ? ", " : "") + p.SelectToken("$value").Value<string>();
                         }
-                        details["#" + counter + " Item IDs To Ignore On Remove"] = itemToIgnore;
+                        subProps["#" + counter + " Item IDs To Ignore On Remove"] = itemToIgnore;
 
-                        details["#" + counter + " Node Type"] = paramCasted.SelectToken("nodeType").Value<string>();
-                        details["#" + counter + " Object Ref"] = ParseGameEntityReference(paramCasted.SelectToken("objectRef"));
-                        details["#" + counter + " Quantity"] = paramCasted.SelectToken("quantity").Value<string>();
-                        details["#" + counter + " Remove All Quantity"] = paramCasted.SelectToken("removeAllQuantity").Value<string>() == "1" ? "True" : "False";
-                        details["#" + counter + " Send Notification"] = paramCasted.SelectToken("sendNotification").Value<string>() == "1" ? "True" : "False";
+                        subProps["#" + counter + " Node Type"] = paramCasted.SelectToken("nodeType").Value<string>();
+                        subProps["#" + counter + " Object Ref"] = ParseGameEntityReference(paramCasted.SelectToken("objectRef"));
+                        subProps["#" + counter + " Quantity"] = paramCasted.SelectToken("quantity").Value<string>();
+                        subProps["#" + counter + " Remove All Quantity"] = paramCasted.SelectToken("removeAllQuantity").Value<string>() == "1" ? "True" : "False";
+                        subProps["#" + counter + " Send Notification"] = paramCasted.SelectToken("sendNotification").Value<string>() == "1" ? "True" : "False";
 
                         var tagsToIgnore = "";
                         foreach (var p in paramCasted.SelectToken("tagsToIgnoreOnRemove"))
                         {
                             tagsToIgnore += (tagsToIgnore != "" ? ", " : "") + p.SelectToken("$value").Value<string>();
                         }
-                        details["#" + counter + " Tags To Ignore On Remove"] = tagsToIgnore;
+                        subProps["#" + counter + " Tags To Ignore On Remove"] = tagsToIgnore;
 
-                        details["#" + counter + " Tag To Remove"] = paramCasted.SelectToken("tagToRemove.$value").Value<string>();
+                        subProps["#" + counter + " Tag To Remove"] = paramCasted.SelectToken("tagToRemove.$value").Value<string>();
 
                         counter++;
                     }
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questCrowdManagerNodeDefinition")
             {
@@ -810,14 +857,16 @@ namespace Visualizer
 
                 string nodeType2 = crowdManagerCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questCrowdManagerNodeType_ControlCrowd")
                 {
-                    details["Action"] = crowdManagerCasted.SelectToken("action").Value<string>();
-                    details["Debug Source"] = crowdManagerCasted.SelectToken("debugSource.$value").Value<string>();
-                    details["Distant Crowd Only"] = crowdManagerCasted.SelectToken("distantCrowdOnly").Value<string>() == "1" ? "True" : "False";
+                    subProps["Action"] = crowdManagerCasted.SelectToken("action").Value<string>();
+                    subProps["Debug Source"] = crowdManagerCasted.SelectToken("debugSource.$value").Value<string>();
+                    subProps["Distant Crowd Only"] = crowdManagerCasted.SelectToken("distantCrowdOnly").Value<string>() == "1" ? "True" : "False";
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questFXManagerNodeDefinition")
             {
@@ -825,7 +874,7 @@ namespace Visualizer
 
                 string nodeType2 = fxManagerCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questPlayFX_NodeType")
                 {
@@ -835,17 +884,19 @@ namespace Visualizer
                     int counter = 1;
                     foreach (var param in paramsArr)
                     {
-                        details["#" + counter + " Effect Instance Name"] = param.SelectToken("effectInstanceName.$value").Value<string>();
-                        details["#" + counter + " Effect Name"] = param.SelectToken("effectName.$value").Value<string>();
-                        details["#" + counter + " Is Player"] = param.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
-                        details["#" + counter + " Object Ref"] = ParseGameEntityReference(param.SelectToken("objectRef"));
-                        details["#" + counter + " Play"] = param.SelectToken("play").Value<string>() == "1" ? "True" : "False";
-                        details["#" + counter + " Save"] = param.SelectToken("save").Value<string>() == "1" ? "True" : "False";
-                        details["#" + counter + " Sequence Shift"] = param.SelectToken("sequenceShift").Value<string>();
+                        subProps["#" + counter + " Effect Instance Name"] = param.SelectToken("effectInstanceName.$value").Value<string>();
+                        subProps["#" + counter + " Effect Name"] = param.SelectToken("effectName.$value").Value<string>();
+                        subProps["#" + counter + " Is Player"] = param.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                        subProps["#" + counter + " Object Ref"] = ParseGameEntityReference(param.SelectToken("objectRef"));
+                        subProps["#" + counter + " Play"] = param.SelectToken("play").Value<string>() == "1" ? "True" : "False";
+                        subProps["#" + counter + " Save"] = param.SelectToken("save").Value<string>() == "1" ? "True" : "False";
+                        subProps["#" + counter + " Sequence Shift"] = param.SelectToken("sequenceShift").Value<string>();
 
                         counter++;
                     }
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questRandomizerNodeDefinition")
             {
@@ -864,19 +915,36 @@ namespace Visualizer
 
                 string nodeType2 = entityManagerCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questEntityManagerToggleMirrorsArea_NodeType")
                 {
-                    details["Is In Mirrors Area"] = entityManagerCasted.SelectToken("isInMirrorsArea").Value<string>() == "1" ? "True" : "False";
-                    details["Object Ref"] = ParseGameEntityReference(entityManagerCasted.SelectToken("objectRef"));
+                    subProps["Is In Mirrors Area"] = entityManagerCasted.SelectToken("isInMirrorsArea").Value<string>() == "1" ? "True" : "False";
+                    subProps["Object Ref"] = ParseGameEntityReference(entityManagerCasted.SelectToken("objectRef"));
                 }
                 if (nodeType2 == "questEntityManagerChangeAppearance_NodeType")
                 {
-                    details["Appearance Name"] = entityManagerCasted.SelectToken("appearanceName.$value").Value<string>();
-                    details["Entity Ref"] = ParseGameEntityReference(entityManagerCasted.SelectToken("entityRef"));
-                    details["Prefetch Only"] = entityManagerCasted.SelectToken("prefetchOnly").Value<string>() == "1" ? "True" : "False";
+                    subProps["Appearance Name"] = entityManagerCasted.SelectToken("appearanceName.$value").Value<string>();
+                    subProps["Entity Ref"] = ParseGameEntityReference(entityManagerCasted.SelectToken("entityRef"));
+                    subProps["Prefetch Only"] = entityManagerCasted.SelectToken("prefetchOnly").Value<string>() == "1" ? "True" : "False";
                 }
+                if (nodeType2 == "questEntityManagerToggleComponent_NodeType")
+                {
+                    var paramsArr = entityManagerCasted.SelectToken("params");
+
+                    int counter = 1;
+                    foreach (var param in paramsArr)
+                    {
+                        subProps["#" + counter + " Component Name"] = param.SelectToken("componentName.$value").Value<string>();
+                        subProps["#" + counter + " Enable"] = param.SelectToken("enable").Value<string>() == "1" ? "True" : "False";
+                        subProps["#" + counter + " Is Player"] = param.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                        subProps["#" + counter + " Object Ref"] = ParseGameEntityReference(param.SelectToken("objectRef"));
+
+                        counter++;
+                    }
+                }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questMovePuppetNodeDefinition")
             {
@@ -885,12 +953,16 @@ namespace Visualizer
 
                 string nodeType2 = node.SelectToken("nodeParams.Data.$type").Value<string>();
 
+                NodeProps subProps = new();
+
                 if (nodeType2 == "questMoveOnSplineParams")
                 {
                     var splineParamsCasted = node.SelectToken("nodeParams.Data");
 
-                    details["Spline Node Ref"] = splineParamsCasted.SelectToken("splineNodeRef.$value").Value<string>();
+                    subProps["Spline Node Ref"] = splineParamsCasted.SelectToken("splineNodeRef.$value").Value<string>();
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questVehicleNodeDefinition")
             {
@@ -898,29 +970,31 @@ namespace Visualizer
 
                 string nodeType2 = vehicleNodeCasted.SelectToken("$type").Value<string>();
 
-                details["Manager"] = GetNameFromClass(nodeType2);
+                NodeProps subProps = new();
 
                 if (nodeType2 == "questMoveOnSpline_NodeType")
                 {
-                    details["Arrive With Pivot"] = vehicleNodeCasted.SelectToken("arriveWithPivot").Value<string>() == "1" ? "True" : "False";
-                    details["Audio Curves"] = vehicleNodeCasted.SelectToken("audioCurves.DepotPath.$value").Value<string>();
-                    details["Blend Time"] = vehicleNodeCasted.SelectToken("blendTime").Value<string>();
-                    details["Blend Type"] = vehicleNodeCasted.SelectToken("blendType").Value<string>();
-                    details["Overrides"] = vehicleNodeCasted.SelectToken("overrides") != null ? "Has overrides" : "";
-                    details["Reverse Gear"] = vehicleNodeCasted.SelectToken("reverseGear").Value<string>() == "1" ? "True" : "False";
-                    details["Scene Blend In Distance"] = vehicleNodeCasted.SelectToken("sceneBlendInDistance").Value<string>();
-                    details["Scene Blend Out Distance"] = vehicleNodeCasted.SelectToken("sceneBlendOutDistance").Value<string>();
-                    details["Spline Ref"] = vehicleNodeCasted.SelectToken("splineRef.$value").Value<string>();
-                    details["Start From"] = vehicleNodeCasted.SelectToken("startFrom").Value<string>();
-                    details["Traffic Deletion Mode"] = vehicleNodeCasted.SelectToken("trafficDeletionMode").Value<string>();
-                    details["Vehicle Ref"] = ParseGameEntityReference(vehicleNodeCasted.SelectToken("vehicleRef"));
+                    subProps["Arrive With Pivot"] = vehicleNodeCasted.SelectToken("arriveWithPivot").Value<string>() == "1" ? "True" : "False";
+                    subProps["Audio Curves"] = vehicleNodeCasted.SelectToken("audioCurves.DepotPath.$value").Value<string>();
+                    subProps["Blend Time"] = vehicleNodeCasted.SelectToken("blendTime").Value<string>();
+                    subProps["Blend Type"] = vehicleNodeCasted.SelectToken("blendType").Value<string>();
+                    subProps["Overrides"] = vehicleNodeCasted.SelectToken("overrides") != null ? "Has overrides" : "";
+                    subProps["Reverse Gear"] = vehicleNodeCasted.SelectToken("reverseGear").Value<string>() == "1" ? "True" : "False";
+                    subProps["Scene Blend In Distance"] = vehicleNodeCasted.SelectToken("sceneBlendInDistance").Value<string>();
+                    subProps["Scene Blend Out Distance"] = vehicleNodeCasted.SelectToken("sceneBlendOutDistance").Value<string>();
+                    subProps["Spline Ref"] = vehicleNodeCasted.SelectToken("splineRef.$value").Value<string>();
+                    subProps["Start From"] = vehicleNodeCasted.SelectToken("startFrom").Value<string>();
+                    subProps["Traffic Deletion Mode"] = vehicleNodeCasted.SelectToken("trafficDeletionMode").Value<string>();
+                    subProps["Vehicle Ref"] = ParseGameEntityReference(vehicleNodeCasted.SelectToken("vehicleRef"));
                 }
                 if (nodeType2 == "questTeleport_NodeType")
                 {
-                    details["Entity Reference"] = ParseGameEntityReference(vehicleNodeCasted.SelectToken("entityReference"));
-                    details["Destination Offset"] = ParseVector(vehicleNodeCasted.SelectToken("params.destinationOffset"));
-                    details["Destination Ref"] = GetNameFromUniversalRef(vehicleNodeCasted.SelectToken("params.destinationRef.Data"));
+                    subProps["Entity Reference"] = ParseGameEntityReference(vehicleNodeCasted.SelectToken("entityReference"));
+                    subProps["Destination Offset"] = ParseVector(vehicleNodeCasted.SelectToken("params.destinationOffset"));
+                    subProps["Destination Ref"] = GetNameFromUniversalRef(vehicleNodeCasted.SelectToken("params.destinationRef.Data"));
                 }
+
+                details["Type", nodeType2] = subProps;
             }
             else if (nodeType == "questCheckpointNodeDefinition")
             {
@@ -937,6 +1011,36 @@ namespace Visualizer
                 details["Point Of No Return"] = node.SelectToken("pointOfNoReturn").Value<string>() == "1" ? "True" : "False";
                 details["Retry On Failure"] = node.SelectToken("retryOnFailure").Value<string>() == "1" ? "True" : "False";
                 details["Save Lock"] = node.SelectToken("saveLock").Value<string>() == "1" ? "True" : "False";
+            }
+            else if (nodeType == "questEquipItemNodeDefinition")
+            {
+                details["Entity Reference"] = ParseGameEntityReference(node.SelectToken("entityReference.Data.entityReference"));
+
+                var paramsCasted = node.SelectToken("params.Data");
+
+                string nodeType2 = paramsCasted.SelectToken("$type").Value<string>();
+
+                NodeProps subProps = new();
+
+                if (nodeType2 == "questEquipItemParams")
+                {
+                    subProps["By Item"] = paramsCasted.SelectToken("byItem").Value<string>() == "1" ? "True" : "False";
+                    subProps["Equip Duration Override"] = paramsCasted.SelectToken("equipDurationOverride").Value<string>();
+                    subProps["Equip Last Weapon"] = paramsCasted.SelectToken("equipLastWeapon").Value<string>() == "1" ? "True" : "False";
+                    subProps["Equip Types"] = paramsCasted.SelectToken("equipTypes").Value<string>();
+                    subProps["Fail If Item Not Found"] = paramsCasted.SelectToken("failIfItemNotFound").Value<string>() == "1" ? "True" : "False";
+                    subProps["Force First Equip"] = paramsCasted.SelectToken("forceFirstEquip").Value<string>() == "1" ? "True" : "False";
+                    subProps["Ignore State Machine"] = paramsCasted.SelectToken("ignoreStateMachine").Value<string>() == "1" ? "True" : "False";
+                    subProps["Instant"] = paramsCasted.SelectToken("instant").Value<string>() == "1" ? "True" : "False";
+                    subProps["Is Player"] = paramsCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                    subProps["Item Id"] = paramsCasted.SelectToken("itemId.$value").Value<string>();
+                    subProps["Slot Id"] = paramsCasted.SelectToken("slotId.$value").Value<string>();
+                    subProps["Type"] = paramsCasted.SelectToken("type").Value<string>();
+                    subProps["Unequip Duration Override"] = paramsCasted.SelectToken("unequipDurationOverride").Value<string>();
+                    subProps["Unequip Types"] = paramsCasted.SelectToken("unequipTypes").Value<string>();
+                }
+
+                details["Params", nodeType2] = subProps;
             }
 
             return details;
@@ -1184,7 +1288,7 @@ namespace Visualizer
 
             string nodeType = node.SelectToken("$type").Value<string>();
 
-            details[logicalCondIndex + "Condition type"] = GetNameFromClass(nodeType);
+            NodeProps subProps = new();
 
             if (nodeType == "questTimeCondition")
             {
@@ -1192,15 +1296,15 @@ namespace Visualizer
 
                 string nodeType2 = condTimeCasted.SelectToken("$type").Value<string>();
 
-                details[logicalCondIndex + "Condition subtype"] = GetNameFromClass(nodeType2);
-
                 //string ConditionTimeTypeName = logicalCondIndex + "Time condition";
                 string ConditionTimeValTypeName = logicalCondIndex + "Time";
+
+                NodeProps subSubProps = new();
 
                 if (nodeType2 == "questRealtimeDelay_ConditionType")
                 {
                     //details[ConditionTimeTypeName] = GetNameFromClass(nodeRealtimeCondCasted);
-                    details[ConditionTimeValTypeName] =
+                    subSubProps[ConditionTimeValTypeName] =
                         FormatNumber(condTimeCasted.SelectToken("hours").Value<uint>()) + "h:" +
                         FormatNumber(condTimeCasted.SelectToken("minutes").Value<uint>()) + "m:" +
                         FormatNumber(condTimeCasted.SelectToken("seconds").Value<uint>()) + "s:" +
@@ -1209,7 +1313,7 @@ namespace Visualizer
 
                 if (nodeType2 == "questGameTimeDelay_ConditionType")
                 {
-                    details[ConditionTimeValTypeName] =
+                    subSubProps[ConditionTimeValTypeName] =
                         FormatNumber(condTimeCasted.SelectToken("days").Value<uint>()) + "d " +
                         FormatNumber(condTimeCasted.SelectToken("hours").Value<uint>()) + "h:" +
                         FormatNumber(condTimeCasted.SelectToken("minutes").Value<uint>()) + "m:" +
@@ -1218,7 +1322,7 @@ namespace Visualizer
 
                 if (nodeType2 == "questTickDelay_ConditionType")
                 {
-                    details[ConditionTimeValTypeName] = FormatNumber(condTimeCasted.SelectToken("tickCount").Value<uint>()) + " ticks";
+                    subSubProps[ConditionTimeValTypeName] = FormatNumber(condTimeCasted.SelectToken("tickCount").Value<uint>()) + " ticks";
                 }
 
                 if (nodeType2 == "questTimePeriod_ConditionType")
@@ -1232,10 +1336,12 @@ namespace Visualizer
                     TimeSpan t2 = TimeSpan.FromSeconds(condTimeCasted.SelectToken("end.seconds").Value<double>());
                     timeNameTo = string.Format("{0:D2}h:{1:D2}m:{2:D2}s", t2.Hours, t2.Minutes, t2.Seconds);
 
-                    details[ConditionTimeValTypeName] =
+                    subSubProps[ConditionTimeValTypeName] =
                         "from " + FormatNumber(condTimeCasted.SelectToken("begin.seconds").Value<uint>()) + " (" + timeNameFrom + ")" +
                         " to " + FormatNumber(condTimeCasted.SelectToken("end.seconds").Value<uint>()) + " (" + timeNameTo + ")";
                 }
+
+                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
             else if (nodeType == "questFactsDBCondition")
             {
@@ -1243,35 +1349,37 @@ namespace Visualizer
 
                 string nodeType2 = condFactCasted.SelectToken("$type").Value<string>();
 
-                details[logicalCondIndex + "Condition subtype"] = GetNameFromClass(nodeType2);
+                NodeProps subSubProps = new();
 
                 if (nodeType2 == "questVarComparison_ConditionType")
                 {
-                    details[logicalCondIndex + "Fact Name"] = condFactCasted.SelectToken("factName").Value<string>();
-                    details[logicalCondIndex + "Comparison Type"] = condFactCasted.SelectToken("comparisonType").Value<string>();
-                    details[logicalCondIndex + "Value"] = condFactCasted.SelectToken("value").Value<string>();
+                    subSubProps[logicalCondIndex + "Fact Name"] = condFactCasted.SelectToken("factName").Value<string>();
+                    subSubProps[logicalCondIndex + "Comparison Type"] = condFactCasted.SelectToken("comparisonType").Value<string>();
+                    subSubProps[logicalCondIndex + "Value"] = condFactCasted.SelectToken("value").Value<string>();
                 }
 
                 if (nodeType2 == "questVarVsVarComparison_ConditionType")
                 {
-                    details[logicalCondIndex + "Comparison Type"] = condFactCasted.SelectToken("comparisonType").Value<string>();
-                    details[logicalCondIndex + "Fact 1 Name"] = condFactCasted.SelectToken("factName1").Value<string>();
-                    details[logicalCondIndex + "Fact 2 Name"] = condFactCasted.SelectToken("factName2").Value<string>();
+                    subSubProps[logicalCondIndex + "Comparison Type"] = condFactCasted.SelectToken("comparisonType").Value<string>();
+                    subSubProps[logicalCondIndex + "Fact 1 Name"] = condFactCasted.SelectToken("factName1").Value<string>();
+                    subSubProps[logicalCondIndex + "Fact 2 Name"] = condFactCasted.SelectToken("factName2").Value<string>();
                 }
+
+                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
             else if (nodeType == "questLogicalCondition")
             {
                 //details[logicalCondIndex + "Operation"] = node.SelectToken("operation").Value<string>();
 
-                NodeProps subProps = new();
+                NodeProps subSubProps = new();
 
                 var conditions = node.SelectToken("conditions");
                 for (int i = 0; i < conditions.Count(); i++)
                 {
-                    subProps.AddRange(GetPropertiesForConditions(conditions[i].SelectToken("Data"), logicalCondIndex + "#" + i + " "));
+                    subSubProps.AddRange(GetPropertiesForConditions(conditions[i].SelectToken("Data"), logicalCondIndex + "#" + i + " "));
                 }
 
-                details[logicalCondIndex + "Operation", node.SelectToken("operation").Value<string>()] = subProps;
+                subProps[logicalCondIndex + "Operation", node.SelectToken("operation").Value<string>()] = subSubProps;
             }
             else if (nodeType == "questCharacterCondition")
             {
@@ -1279,39 +1387,41 @@ namespace Visualizer
 
                 string nodeType2 = condCharacterCasted.SelectToken("$type").Value<string>();
 
-                details[logicalCondIndex + "Condition subtype"] = GetNameFromClass(nodeType2);
+                NodeProps subSubProps = new();
 
                 if (nodeType2 == "questCharacterBodyType_CondtionType")
                 {
-                    details[logicalCondIndex + "Gender"] = condCharacterCasted.SelectToken("gender.$value").Value<string>();
-                    details[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
-                    details[logicalCondIndex + "Is Player"] = condCharacterCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Gender"] = condCharacterCasted.SelectToken("gender.$value").Value<string>();
+                    subSubProps[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
+                    subSubProps[logicalCondIndex + "Is Player"] = condCharacterCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
                 }
                 if (nodeType2 == "questCharacterSpawned_ConditionType")
                 {
-                    details[logicalCondIndex + "Comparison Type"] = condCharacterCasted.SelectToken("comparisonParams.Data.comparisonType").Value<string>();
-                    details[logicalCondIndex + "Comparison Count"] = condCharacterCasted.SelectToken("comparisonParams.Data.count").Value<string>();
-                    details[logicalCondIndex + "Comparison Entire Community"] = condCharacterCasted.SelectToken("comparisonParams.Data.entireCommunity").Value<string>() == "1" ? "True" : "False";
-                    details[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
+                    subSubProps[logicalCondIndex + "Comparison Type"] = condCharacterCasted.SelectToken("comparisonParams.Data.comparisonType").Value<string>();
+                    subSubProps[logicalCondIndex + "Comparison Count"] = condCharacterCasted.SelectToken("comparisonParams.Data.count").Value<string>();
+                    subSubProps[logicalCondIndex + "Comparison Entire Community"] = condCharacterCasted.SelectToken("comparisonParams.Data.entireCommunity").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
                 }
                 if (nodeType2 == "questCharacterKilled_ConditionType")
                 {
-                    details[logicalCondIndex + "Comparison Type"] = condCharacterCasted.SelectToken("comparisonParams.Data.comparisonType").Value<string>();
-                    details[logicalCondIndex + "Comparison Count"] = condCharacterCasted.SelectToken("comparisonParams.Data.count").Value<string>();
-                    details[logicalCondIndex + "Comparison Entire Community"] = condCharacterCasted.SelectToken("comparisonParams.Data.entireCommunity").Value<string>() == "1" ? "True" : "False";
-                    details[logicalCondIndex + "Defeated"] = condCharacterCasted.SelectToken("defeated").Value<string>() == "1" ? "True" : "False";
-                    details[logicalCondIndex + "Killed"] = condCharacterCasted.SelectToken("killed").Value<string>() == "1" ? "True" : "False";
-                    details[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
-                    details[logicalCondIndex + "Source"] = GetNameFromUniversalRef(condCharacterCasted.SelectToken("source"));
-                    details[logicalCondIndex + "Unconscious"] = condCharacterCasted.SelectToken("unconscious").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Comparison Type"] = condCharacterCasted.SelectToken("comparisonParams.Data.comparisonType").Value<string>();
+                    subSubProps[logicalCondIndex + "Comparison Count"] = condCharacterCasted.SelectToken("comparisonParams.Data.count").Value<string>();
+                    subSubProps[logicalCondIndex + "Comparison Entire Community"] = condCharacterCasted.SelectToken("comparisonParams.Data.entireCommunity").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Defeated"] = condCharacterCasted.SelectToken("defeated").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Killed"] = condCharacterCasted.SelectToken("killed").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
+                    subSubProps[logicalCondIndex + "Source"] = GetNameFromUniversalRef(condCharacterCasted.SelectToken("source"));
+                    subSubProps[logicalCondIndex + "Unconscious"] = condCharacterCasted.SelectToken("unconscious").Value<string>() == "1" ? "True" : "False";
                 }
+
+                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
             else if (nodeType == "questTriggerCondition")
             {
-                details[logicalCondIndex + "Activator Ref"] = ParseGameEntityReference(node.SelectToken("activatorRef"));
-                details[logicalCondIndex + "Is Player Activator"] = node.SelectToken("isPlayerActivator").Value<string>() == "1" ? "True" : "False";
-                details[logicalCondIndex + "Trigger Area Ref"] = node.SelectToken("triggerAreaRef.$value").Value<string>();
-                details[logicalCondIndex + "Trigger Type"] = node.SelectToken("type").Value<string>();
+                subProps[logicalCondIndex + "Activator Ref"] = ParseGameEntityReference(node.SelectToken("activatorRef"));
+                subProps[logicalCondIndex + "Is Player Activator"] = node.SelectToken("isPlayerActivator").Value<string>() == "1" ? "True" : "False";
+                subProps[logicalCondIndex + "Trigger Area Ref"] = node.SelectToken("triggerAreaRef.$value").Value<string>();
+                subProps[logicalCondIndex + "Trigger Type"] = node.SelectToken("type").Value<string>();
             }
             else if (nodeType == "questSystemCondition")
             {
@@ -1319,43 +1429,45 @@ namespace Visualizer
 
                 string nodeType2 = condSystemCasted.SelectToken("$type").Value<string>();
 
-                details[logicalCondIndex + "Condition subtype"] = GetNameFromClass(nodeType2);
+                NodeProps subSubProps = new();
 
                 if (nodeType2 == "questCameraFocus_ConditionType")
                 {
-                    details[logicalCondIndex + "Angle Tolerance"] = condSystemCasted.SelectToken("angleTolerance").Value<string>();
-                    details[logicalCondIndex + "Inverted"] = condSystemCasted.SelectToken("inverted").Value<string>() == "1" ? "True" : "False";
-                    details[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condSystemCasted.SelectToken("objectRef"));
-                    details[logicalCondIndex + "On Screen Test"] = condSystemCasted.SelectToken("onScreenTest").Value<string>() == "1" ? "True" : "False";
-                    details[logicalCondIndex + "Time Interval"] = condSystemCasted.SelectToken("timeInterval").Value<string>();
-                    details[logicalCondIndex + "Use Frustrum Check"] = condSystemCasted.SelectToken("useFrustrumCheck").Value<string>() == "1" ? "True" : "False";
-                    details[logicalCondIndex + "Zoomed"] = condSystemCasted.SelectToken("zoomed").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Angle Tolerance"] = condSystemCasted.SelectToken("angleTolerance").Value<string>();
+                    subSubProps[logicalCondIndex + "Inverted"] = condSystemCasted.SelectToken("inverted").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condSystemCasted.SelectToken("objectRef"));
+                    subSubProps[logicalCondIndex + "On Screen Test"] = condSystemCasted.SelectToken("onScreenTest").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Time Interval"] = condSystemCasted.SelectToken("timeInterval").Value<string>();
+                    subSubProps[logicalCondIndex + "Use Frustrum Check"] = condSystemCasted.SelectToken("useFrustrumCheck").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Zoomed"] = condSystemCasted.SelectToken("zoomed").Value<string>() == "1" ? "True" : "False";
                 }
                 if (nodeType2 == "questInputAction_ConditionType")
                 {
-                    details[logicalCondIndex + "Any Input Action"] = condSystemCasted.SelectToken("anyInputAction").Value<string>() == "1" ? "True" : "False";
-                    details[logicalCondIndex + "Axis Action"] = condSystemCasted.SelectToken("axisAction").Value<string>() == "1" ? "True" : "False";
-                    details[logicalCondIndex + "Check If Button Already Pressed"] = condSystemCasted.SelectToken("checkIfButtonAlreadyPressed").Value<string>() == "1" ? "True" : "False";
-                    details[logicalCondIndex + "Input Action"] = condSystemCasted.SelectToken("inputAction.$value").Value<string>();
-                    details[logicalCondIndex + "Value Less Than"] = condSystemCasted.SelectToken("valueLessThan").Value<string>();
-                    details[logicalCondIndex + "Value More Than"] = condSystemCasted.SelectToken("valueMoreThan").Value<string>();
+                    subSubProps[logicalCondIndex + "Any Input Action"] = condSystemCasted.SelectToken("anyInputAction").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Axis Action"] = condSystemCasted.SelectToken("axisAction").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Check If Button Already Pressed"] = condSystemCasted.SelectToken("checkIfButtonAlreadyPressed").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Input Action"] = condSystemCasted.SelectToken("inputAction.$value").Value<string>();
+                    subSubProps[logicalCondIndex + "Value Less Than"] = condSystemCasted.SelectToken("valueLessThan").Value<string>();
+                    subSubProps[logicalCondIndex + "Value More Than"] = condSystemCasted.SelectToken("valueMoreThan").Value<string>();
                 }
                 if (nodeType2 == "questPrereq_ConditionType")
                 {
-                    details[logicalCondIndex + "Is Object Player"] = condSystemCasted.SelectToken("isObjectPlayer").Value<string>() == "1" ? "True" : "False";
-                    details[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condSystemCasted.SelectToken("objectRef"));
+                    subSubProps[logicalCondIndex + "Is Object Player"] = condSystemCasted.SelectToken("isObjectPlayer").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condSystemCasted.SelectToken("objectRef"));
 
                     var prereq = condSystemCasted.SelectToken("prereq.Data");
                     var type = prereq.SelectToken("$type").Value<string>();
 
-                    details[logicalCondIndex + "Prereq"] = type;
+                    subSubProps[logicalCondIndex + "Prereq"] = type;
 
                     if (type == "DialogueChoiceHubPrereq")
-                        details[logicalCondIndex + "Is Choice Hub Active"] = prereq.SelectToken("isChoiceHubActive").Value<string>();
+                        subSubProps[logicalCondIndex + "Is Choice Hub Active"] = prereq.SelectToken("isChoiceHubActive").Value<string>();
 
                     if (type == "PlayerControlsDevicePrereq")
-                        details[logicalCondIndex + "Inverse"] = prereq.SelectToken("inverse").Value<string>() == "1" ? "True" : "False";
+                        subSubProps[logicalCondIndex + "Inverse"] = prereq.SelectToken("inverse").Value<string>() == "1" ? "True" : "False";
                 }
+
+                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
             else if (nodeType == "questDistanceCondition")
             {
@@ -1363,18 +1475,20 @@ namespace Visualizer
 
                 string nodeType2 = condDistanceCasted.SelectToken("$type").Value<string>();
 
-                details[logicalCondIndex + "Condition subtype"] = GetNameFromClass(nodeType2);
+                NodeProps subSubProps = new();
 
                 if (nodeType2 == "questDistanceComparison_ConditionType")
                 {
-                    details[logicalCondIndex + "Comparison Type"] = condDistanceCasted.SelectToken("comparisonType").Value<string>();
-                    details[logicalCondIndex + "Entity Ref"] = GetNameFromUniversalRef(condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data"));
+                    subSubProps[logicalCondIndex + "Comparison Type"] = condDistanceCasted.SelectToken("comparisonType").Value<string>();
+                    subSubProps[logicalCondIndex + "Entity Ref"] = GetNameFromUniversalRef(condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data"));
                     //details[logicalCondIndex + "Entity Ref - Entity Reference"] = GetNameFromUniversalRef(condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data"));
                     //details[logicalCondIndex + "Entity Ref - Main Player Object"] = condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data.mainPlayerObject").Value<string>() == "1" ? "True" : "False";
                     //details[logicalCondIndex + "Entity Ref - Ref Local Player"] = condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data.refLocalPlayer").Value<string>() == "1" ? "True" : "False";
-                    details[logicalCondIndex + "Node Ref 2"] = ParseGameEntityReference(condDistanceCasted.SelectToken("distanceDefinition1.Data.nodeRef2"));
-                    details[logicalCondIndex + "Distance Value"] = condDistanceCasted.SelectToken("distanceDefinition2.Data.distanceValue").Value<string>();
+                    subSubProps[logicalCondIndex + "Node Ref 2"] = ParseGameEntityReference(condDistanceCasted.SelectToken("distanceDefinition1.Data.nodeRef2"));
+                    subSubProps[logicalCondIndex + "Distance Value"] = condDistanceCasted.SelectToken("distanceDefinition2.Data.distanceValue").Value<string>();
                 }
+
+                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
             else if (nodeType == "questSceneCondition")
             {
@@ -1382,15 +1496,17 @@ namespace Visualizer
 
                 string nodeType2 = condSceneCasted.SelectToken("$type").Value<string>();
 
-                details[logicalCondIndex + "Condition subtype"] = GetNameFromClass(nodeType2);
+                NodeProps subSubProps = new();
 
                 if (nodeType2 == "questSectionNode_ConditionType")
                 {
-                    details[logicalCondIndex + "Scene File"] = condSceneCasted.SelectToken("sceneFile.DepotPath.$value").Value<string>();
-                    details[logicalCondIndex + "Scene Version"] = condSceneCasted.SelectToken("SceneVersion").Value<string>();
-                    details[logicalCondIndex + "Section Name"] = condSceneCasted.SelectToken("sectionName.$value").Value<string>();
-                    details[logicalCondIndex + "Cond Type"] = condSceneCasted.SelectToken("type").Value<string>();
+                    subSubProps[logicalCondIndex + "Scene File"] = condSceneCasted.SelectToken("sceneFile.DepotPath.$value").Value<string>();
+                    subSubProps[logicalCondIndex + "Scene Version"] = condSceneCasted.SelectToken("SceneVersion").Value<string>();
+                    subSubProps[logicalCondIndex + "Section Name"] = condSceneCasted.SelectToken("sectionName.$value").Value<string>();
+                    subSubProps[logicalCondIndex + "Cond Type"] = condSceneCasted.SelectToken("type").Value<string>();
                 }
+
+                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
             else if (nodeType == "questJournalCondition")
             {
@@ -1398,14 +1514,16 @@ namespace Visualizer
 
                 string nodeType2 = journalCasted.SelectToken("$type").Value<string>();
 
-                details[logicalCondIndex + "Condition subtype"] = GetNameFromClass(nodeType2);
+                NodeProps subSubProps = new();
 
                 if (nodeType2 == "questJournalEntryState_ConditionType")
                 {
-                    details[logicalCondIndex + "Inverted"] = journalCasted.SelectToken("inverted").Value<string>() == "1" ? "True" : "False";
-                    details.AddRange(ParseJournalPath(journalCasted.SelectToken("path.Data"), logicalCondIndex));
-                    details[logicalCondIndex + "State"] = journalCasted.SelectToken("state").Value<string>();
+                    subSubProps[logicalCondIndex + "Inverted"] = journalCasted.SelectToken("inverted").Value<string>() == "1" ? "True" : "False";
+                    subSubProps.AddRange(ParseJournalPath(journalCasted.SelectToken("path.Data"), logicalCondIndex));
+                    subSubProps[logicalCondIndex + "State"] = journalCasted.SelectToken("state").Value<string>();
                 }
+
+                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
             else if (nodeType == "questObjectCondition")
             {
@@ -1413,18 +1531,22 @@ namespace Visualizer
 
                 string nodeType2 = objectCasted.SelectToken("$type").Value<string>();
 
-                details[logicalCondIndex + "Condition subtype"] = GetNameFromClass(nodeType2);
+                NodeProps subSubProps = new();
 
                 if (nodeType2 == "questInventory_ConditionType")
                 {
-                    details[logicalCondIndex + "Comparison Type"] = objectCasted.SelectToken("comparisonType").Value<string>();
-                    details[logicalCondIndex + "Is Player"] = objectCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
-                    details[logicalCondIndex + "Item ID"] = objectCasted.SelectToken("itemID.$value").Value<string>();
-                    details[logicalCondIndex + "Item Tag"] = objectCasted.SelectToken("itemTag.$value").Value<string>();
-                    details[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(objectCasted.SelectToken("objectRef"));
-                    details[logicalCondIndex + "Quantity"] = objectCasted.SelectToken("quantity").Value<string>();
+                    subSubProps[logicalCondIndex + "Comparison Type"] = objectCasted.SelectToken("comparisonType").Value<string>();
+                    subSubProps[logicalCondIndex + "Is Player"] = objectCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                    subSubProps[logicalCondIndex + "Item ID"] = objectCasted.SelectToken("itemID.$value").Value<string>();
+                    subSubProps[logicalCondIndex + "Item Tag"] = objectCasted.SelectToken("itemTag.$value").Value<string>();
+                    subSubProps[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(objectCasted.SelectToken("objectRef"));
+                    subSubProps[logicalCondIndex + "Quantity"] = objectCasted.SelectToken("quantity").Value<string>();
                 }
+
+                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
+
+            details[logicalCondIndex + "Type", GetNameFromClass(nodeType)] = subProps;
 
             return details;
         }
