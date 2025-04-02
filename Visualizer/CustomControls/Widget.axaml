@@ -77,7 +77,7 @@
         </Border.BorderBrush> -->
         <Rectangle Fill="#1e1e1e" StrokeThickness="2" RadiusX="5" RadiusY="5" />
         
-        <Grid Margin="2,2,2,2" ClipToBounds="True">
+        <Grid Margin="2,2,2,2" ClipToBounds="True" Name="grid">
             <Grid.RowDefinitions>
                 <RowDefinition Height="30"/>
 				<RowDefinition Height="*" />
@@ -99,20 +99,24 @@
 				<StackPanel Orientation="Vertical" Name="listOutputs" Grid.Column="1" Margin="0,0,0,0" />
 			</Grid>
 
-            <StackPanel Orientation="Vertical" Name="list" Grid.Row="2">
-                <!--<Border Margin="0,0,0,0" BorderBrush="Black" BorderThickness="1">
-                    <StackPanel Orientation="Vertical" Margin="0,0,0,0">
-                        <Grid Height="30">
-                            <TextBlock Text="Name" Margin="0,0,0,0" FontWeight="Bold" />
-                            <TextBlock Text="Value" Margin="10,13,0,0" />
-                        </Grid>
-                        <Grid Height="30">
-                            <TextBlock Text="Name" Margin="0,0,0,0" FontWeight="Bold" />
-                            <TextBlock Text="Value" Margin="10,13,0,0" />
-                        </Grid>
-                    </StackPanel>
-                </Border>-->
-            </StackPanel>
+			<Grid Grid.Row="2">
+				<Border Name="listBorder" BorderBrush="Transparent" BorderThickness="2" HorizontalAlignment="Left" Width="1000">
+            		<StackPanel Orientation="Vertical" Name="list" HorizontalAlignment="Stretch" Background="#1e1e1e" PointerEntered="list_PointerEnter" PointerExited="list_PointerLeave">
+            		    <!--<Border Margin="0,0,0,0" BorderBrush="Black" BorderThickness="1">
+            		        <StackPanel Orientation="Vertical" Margin="0,0,0,0">
+            		            <Grid Height="30">
+            		                <TextBlock Text="Name" Margin="0,0,0,0" FontWeight="Bold" />
+            		                <TextBlock Text="Value" Margin="10,13,0,0" />
+            		            </Grid>
+            		            <Grid Height="30">
+            		                <TextBlock Text="Name" Margin="0,0,0,0" FontWeight="Bold" />
+            		                <TextBlock Text="Value" Margin="10,13,0,0" />
+            		            </Grid>
+            		        </StackPanel>
+            		    </Border>-->
+            		</StackPanel>
+				</Border>
+			</Grid>
             
 			<Border Background="#882979ff" Grid.RowSpan="3" Name="selected" IsVisible="False" CornerRadius="5" />
         </Grid>

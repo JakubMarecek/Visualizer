@@ -211,6 +211,8 @@ namespace Visualizer
 				}
 			}
 
+			List<string> questNodesID = [];
+
 			if (openedFile.EndsWith(".scene.json"))
 			{
 				Dictionary<int, string> NotablePoints = new();
@@ -317,7 +319,15 @@ namespace Visualizer
 
 					NodeProps prms = new();
 					if (nodeType == "scnQuestNode")
+					{
 						prms = NodeProperties.GetPropertiesForQuestNode(it.SelectToken("questNode.Data"), rootChunk);
+
+						var nodeBaseID = it.SelectToken("nodeId.id").Value<string>();
+						var nodeQuestID = it.SelectToken("questNode.Data.id").Value<string>();
+
+						if (nodeBaseID != nodeQuestID)
+							questNodesID.Add(nodeBaseID);
+					}
 					else
 						prms = NodeProperties.GetPropertiesForSectionNode(it, rootChunk);
 					//if (nodeType == "scnSectionNode" || nodeType == "scnRewindableSectionNode") prms = NodeProperties.GetPropertiesForSectionNode(it);
@@ -776,6 +786,13 @@ namespace Visualizer
 
 
 
+			foreach (var a in questNodesID)
+			{
+					var t = "Quest node ID mismatch: " + a;
+					Console.WriteLine(t);
+					HandleDebug(t);
+			}
+
 
 
 
@@ -961,6 +978,7 @@ namespace Visualizer
 						foreach (var p in props.GetData())
 						{
 							var sp = new StackPanel();
+							//sp.Background = new SolidColorBrush(Color.Parse("#444"));
 							sp.Orientation = Avalonia.Layout.Orientation.Horizontal;
 							sp.Children.Add(new Label() { Content = p.Name?.Replace("_", "__"), Foreground = new SolidColorBrush(Color.Parse("#999999")), Margin = new(0, 0, 4, 0), Padding = new(0) });
 
@@ -985,7 +1003,7 @@ namespace Visualizer
 					w.list.Children.AddRange(drawParams(item.Params));
 
 					if (item.Params.Count() > 0)
-						w.list.Margin = new(5);
+						w.listBorder.Margin = new(3);
 
 					item.Draw = true;
 					item.UI = w;

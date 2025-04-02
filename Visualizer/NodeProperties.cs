@@ -1077,6 +1077,10 @@ namespace Visualizer
                     NodeProps subProps = new();
                     string evName = eventClass.SelectToken("Data.$type").Value<string>();
 
+                    var dur = eventClass.SelectToken("Data.duration")?.Value<string>();
+                    if (dur != null)
+                        subProps["Duration"] = dur;
+
                     if (evName == "scneventsSocket")
                     {
                         evName += " - Name: " + eventClass.SelectToken("Data.osockStamp.name").Value<string>() + ", Ordinal: " + eventClass.SelectToken("Data.osockStamp.ordinal").Value<string>();
@@ -1118,7 +1122,9 @@ namespace Visualizer
                     }
                     else if (evName == "scnDialogLineEvent")
                     {
-                        evName += " - " + GetScreenplayItem(eventClass.SelectToken("Data.screenplayLineId.id").Value<string>(), scnSceneResource);
+                        //subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performer.id").Value<string>(), scnSceneResource);
+                        //subProps["Screenplay Line Id"] = GetScreenplayItem(eventClass.SelectToken("Data.screenplayLineId.id").Value<string>(), scnSceneResource);
+                        subProps.AddRange(GetScreenplayItem(eventClass.SelectToken("Data.screenplayLineId.id").Value<string>(), scnSceneResource));
                     }
                     else if (evName == "scnLookAtEvent")
                     {
@@ -1152,7 +1158,6 @@ namespace Visualizer
                         subProps["Baked Facial Male"] = eventClass.SelectToken("Data.bakedFacialTransition.facialKey_Male.$value").Value<string>();
                         subProps["Baked To Idle Female"] = eventClass.SelectToken("Data.bakedFacialTransition.toIdleFemale.$value").Value<string>();
                         subProps["Baked To Idle Male"] = eventClass.SelectToken("Data.bakedFacialTransition.toIdleMale.$value").Value<string>();
-                        subProps["Duration"] = eventClass.SelectToken("Data.duration").Value<string>();
                     }
                     else if (evName == "scnPoseCorrectionEvent")
                     {
@@ -1170,7 +1175,8 @@ namespace Visualizer
                         subProps["Reset Fov"] = eventClass.SelectToken("Data.cameraOverrideSettings.resetFov").Value<string>() == "1" ? "True" : "False";
                     }
 
-                    details["#" + counter.ToString() + " " + eventClass.SelectToken("Data.startTime").Value<string>() + "ms" + " ET:" + eventClass.SelectToken("Data.executionTagFlags").Value<string>(), evName] = subProps;
+                    var timeBegin = int.Parse(eventClass.SelectToken("Data.startTime").Value<string>());
+                    details["#" + counter.ToString() + " " + timeBegin.ToString() + "ms" + (dur != null ? (" > " + (timeBegin + int.Parse(dur)).ToString() + "ms") : "") + " ET:" + eventClass.SelectToken("Data.executionTagFlags").Value<string>(), evName] = subProps;
                     counter++;
                 }
             }
@@ -1296,8 +1302,8 @@ namespace Visualizer
 
                 string nodeType2 = condTimeCasted.SelectToken("$type").Value<string>();
 
-                //string ConditionTimeTypeName = logicalCondIndex + "Time condition";
-                string ConditionTimeValTypeName = logicalCondIndex + "Time";
+                //string ConditionTimeTypeName = "Time condition";
+                string ConditionTimeValTypeName = "Time";
 
                 NodeProps subSubProps = new();
 
@@ -1341,7 +1347,7 @@ namespace Visualizer
                         " to " + FormatNumber(condTimeCasted.SelectToken("end.seconds").Value<uint>()) + " (" + timeNameTo + ")";
                 }
 
-                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
+                subProps["Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
             else if (nodeType == "questFactsDBCondition")
             {
@@ -1353,33 +1359,33 @@ namespace Visualizer
 
                 if (nodeType2 == "questVarComparison_ConditionType")
                 {
-                    subSubProps[logicalCondIndex + "Fact Name"] = condFactCasted.SelectToken("factName").Value<string>();
-                    subSubProps[logicalCondIndex + "Comparison Type"] = condFactCasted.SelectToken("comparisonType").Value<string>();
-                    subSubProps[logicalCondIndex + "Value"] = condFactCasted.SelectToken("value").Value<string>();
+                    subSubProps["Fact Name"] = condFactCasted.SelectToken("factName").Value<string>();
+                    subSubProps["Comparison Type"] = condFactCasted.SelectToken("comparisonType").Value<string>();
+                    subSubProps["Value"] = condFactCasted.SelectToken("value").Value<string>();
                 }
 
                 if (nodeType2 == "questVarVsVarComparison_ConditionType")
                 {
-                    subSubProps[logicalCondIndex + "Comparison Type"] = condFactCasted.SelectToken("comparisonType").Value<string>();
-                    subSubProps[logicalCondIndex + "Fact 1 Name"] = condFactCasted.SelectToken("factName1").Value<string>();
-                    subSubProps[logicalCondIndex + "Fact 2 Name"] = condFactCasted.SelectToken("factName2").Value<string>();
+                    subSubProps["Comparison Type"] = condFactCasted.SelectToken("comparisonType").Value<string>();
+                    subSubProps["Fact 1 Name"] = condFactCasted.SelectToken("factName1").Value<string>();
+                    subSubProps["Fact 2 Name"] = condFactCasted.SelectToken("factName2").Value<string>();
                 }
 
-                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
+                subProps["Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
             else if (nodeType == "questLogicalCondition")
             {
-                //details[logicalCondIndex + "Operation"] = node.SelectToken("operation").Value<string>();
+                //details["Operation"] = node.SelectToken("operation").Value<string>();
 
                 NodeProps subSubProps = new();
 
                 var conditions = node.SelectToken("conditions");
                 for (int i = 0; i < conditions.Count(); i++)
                 {
-                    subSubProps.AddRange(GetPropertiesForConditions(conditions[i].SelectToken("Data"), logicalCondIndex + "#" + i + " "));
+                    subSubProps.AddRange(GetPropertiesForConditions(conditions[i].SelectToken("Data"), "#" + i + " "));
                 }
 
-                subProps[logicalCondIndex + "Operation", node.SelectToken("operation").Value<string>()] = subSubProps;
+                subProps["Operation", node.SelectToken("operation").Value<string>()] = subSubProps;
             }
             else if (nodeType == "questCharacterCondition")
             {
@@ -1391,37 +1397,37 @@ namespace Visualizer
 
                 if (nodeType2 == "questCharacterBodyType_CondtionType")
                 {
-                    subSubProps[logicalCondIndex + "Gender"] = condCharacterCasted.SelectToken("gender.$value").Value<string>();
-                    subSubProps[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
-                    subSubProps[logicalCondIndex + "Is Player"] = condCharacterCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Gender"] = condCharacterCasted.SelectToken("gender.$value").Value<string>();
+                    subSubProps["Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
+                    subSubProps["Is Player"] = condCharacterCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
                 }
                 if (nodeType2 == "questCharacterSpawned_ConditionType")
                 {
-                    subSubProps[logicalCondIndex + "Comparison Type"] = condCharacterCasted.SelectToken("comparisonParams.Data.comparisonType").Value<string>();
-                    subSubProps[logicalCondIndex + "Comparison Count"] = condCharacterCasted.SelectToken("comparisonParams.Data.count").Value<string>();
-                    subSubProps[logicalCondIndex + "Comparison Entire Community"] = condCharacterCasted.SelectToken("comparisonParams.Data.entireCommunity").Value<string>() == "1" ? "True" : "False";
-                    subSubProps[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
+                    subSubProps["Comparison Type"] = condCharacterCasted.SelectToken("comparisonParams.Data.comparisonType").Value<string>();
+                    subSubProps["Comparison Count"] = condCharacterCasted.SelectToken("comparisonParams.Data.count").Value<string>();
+                    subSubProps["Comparison Entire Community"] = condCharacterCasted.SelectToken("comparisonParams.Data.entireCommunity").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
                 }
                 if (nodeType2 == "questCharacterKilled_ConditionType")
                 {
-                    subSubProps[logicalCondIndex + "Comparison Type"] = condCharacterCasted.SelectToken("comparisonParams.Data.comparisonType").Value<string>();
-                    subSubProps[logicalCondIndex + "Comparison Count"] = condCharacterCasted.SelectToken("comparisonParams.Data.count").Value<string>();
-                    subSubProps[logicalCondIndex + "Comparison Entire Community"] = condCharacterCasted.SelectToken("comparisonParams.Data.entireCommunity").Value<string>() == "1" ? "True" : "False";
-                    subSubProps[logicalCondIndex + "Defeated"] = condCharacterCasted.SelectToken("defeated").Value<string>() == "1" ? "True" : "False";
-                    subSubProps[logicalCondIndex + "Killed"] = condCharacterCasted.SelectToken("killed").Value<string>() == "1" ? "True" : "False";
-                    subSubProps[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
-                    subSubProps[logicalCondIndex + "Source"] = GetNameFromUniversalRef(condCharacterCasted.SelectToken("source"));
-                    subSubProps[logicalCondIndex + "Unconscious"] = condCharacterCasted.SelectToken("unconscious").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Comparison Type"] = condCharacterCasted.SelectToken("comparisonParams.Data.comparisonType").Value<string>();
+                    subSubProps["Comparison Count"] = condCharacterCasted.SelectToken("comparisonParams.Data.count").Value<string>();
+                    subSubProps["Comparison Entire Community"] = condCharacterCasted.SelectToken("comparisonParams.Data.entireCommunity").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Defeated"] = condCharacterCasted.SelectToken("defeated").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Killed"] = condCharacterCasted.SelectToken("killed").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
+                    subSubProps["Source"] = GetNameFromUniversalRef(condCharacterCasted.SelectToken("source"));
+                    subSubProps["Unconscious"] = condCharacterCasted.SelectToken("unconscious").Value<string>() == "1" ? "True" : "False";
                 }
 
-                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
+                subProps["Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
             else if (nodeType == "questTriggerCondition")
             {
-                subProps[logicalCondIndex + "Activator Ref"] = ParseGameEntityReference(node.SelectToken("activatorRef"));
-                subProps[logicalCondIndex + "Is Player Activator"] = node.SelectToken("isPlayerActivator").Value<string>() == "1" ? "True" : "False";
-                subProps[logicalCondIndex + "Trigger Area Ref"] = node.SelectToken("triggerAreaRef.$value").Value<string>();
-                subProps[logicalCondIndex + "Trigger Type"] = node.SelectToken("type").Value<string>();
+                subProps["Activator Ref"] = ParseGameEntityReference(node.SelectToken("activatorRef"));
+                subProps["Is Player Activator"] = node.SelectToken("isPlayerActivator").Value<string>() == "1" ? "True" : "False";
+                subProps["Trigger Area Ref"] = node.SelectToken("triggerAreaRef.$value").Value<string>();
+                subProps["Trigger Type"] = node.SelectToken("type").Value<string>();
             }
             else if (nodeType == "questSystemCondition")
             {
@@ -1433,41 +1439,41 @@ namespace Visualizer
 
                 if (nodeType2 == "questCameraFocus_ConditionType")
                 {
-                    subSubProps[logicalCondIndex + "Angle Tolerance"] = condSystemCasted.SelectToken("angleTolerance").Value<string>();
-                    subSubProps[logicalCondIndex + "Inverted"] = condSystemCasted.SelectToken("inverted").Value<string>() == "1" ? "True" : "False";
-                    subSubProps[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condSystemCasted.SelectToken("objectRef"));
-                    subSubProps[logicalCondIndex + "On Screen Test"] = condSystemCasted.SelectToken("onScreenTest").Value<string>() == "1" ? "True" : "False";
-                    subSubProps[logicalCondIndex + "Time Interval"] = condSystemCasted.SelectToken("timeInterval").Value<string>();
-                    subSubProps[logicalCondIndex + "Use Frustrum Check"] = condSystemCasted.SelectToken("useFrustrumCheck").Value<string>() == "1" ? "True" : "False";
-                    subSubProps[logicalCondIndex + "Zoomed"] = condSystemCasted.SelectToken("zoomed").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Angle Tolerance"] = condSystemCasted.SelectToken("angleTolerance").Value<string>();
+                    subSubProps["Inverted"] = condSystemCasted.SelectToken("inverted").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Object Ref"] = ParseGameEntityReference(condSystemCasted.SelectToken("objectRef"));
+                    subSubProps["On Screen Test"] = condSystemCasted.SelectToken("onScreenTest").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Time Interval"] = condSystemCasted.SelectToken("timeInterval").Value<string>();
+                    subSubProps["Use Frustrum Check"] = condSystemCasted.SelectToken("useFrustrumCheck").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Zoomed"] = condSystemCasted.SelectToken("zoomed").Value<string>() == "1" ? "True" : "False";
                 }
                 if (nodeType2 == "questInputAction_ConditionType")
                 {
-                    subSubProps[logicalCondIndex + "Any Input Action"] = condSystemCasted.SelectToken("anyInputAction").Value<string>() == "1" ? "True" : "False";
-                    subSubProps[logicalCondIndex + "Axis Action"] = condSystemCasted.SelectToken("axisAction").Value<string>() == "1" ? "True" : "False";
-                    subSubProps[logicalCondIndex + "Check If Button Already Pressed"] = condSystemCasted.SelectToken("checkIfButtonAlreadyPressed").Value<string>() == "1" ? "True" : "False";
-                    subSubProps[logicalCondIndex + "Input Action"] = condSystemCasted.SelectToken("inputAction.$value").Value<string>();
-                    subSubProps[logicalCondIndex + "Value Less Than"] = condSystemCasted.SelectToken("valueLessThan").Value<string>();
-                    subSubProps[logicalCondIndex + "Value More Than"] = condSystemCasted.SelectToken("valueMoreThan").Value<string>();
+                    subSubProps["Any Input Action"] = condSystemCasted.SelectToken("anyInputAction").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Axis Action"] = condSystemCasted.SelectToken("axisAction").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Check If Button Already Pressed"] = condSystemCasted.SelectToken("checkIfButtonAlreadyPressed").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Input Action"] = condSystemCasted.SelectToken("inputAction.$value").Value<string>();
+                    subSubProps["Value Less Than"] = condSystemCasted.SelectToken("valueLessThan").Value<string>();
+                    subSubProps["Value More Than"] = condSystemCasted.SelectToken("valueMoreThan").Value<string>();
                 }
                 if (nodeType2 == "questPrereq_ConditionType")
                 {
-                    subSubProps[logicalCondIndex + "Is Object Player"] = condSystemCasted.SelectToken("isObjectPlayer").Value<string>() == "1" ? "True" : "False";
-                    subSubProps[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(condSystemCasted.SelectToken("objectRef"));
+                    subSubProps["Is Object Player"] = condSystemCasted.SelectToken("isObjectPlayer").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Object Ref"] = ParseGameEntityReference(condSystemCasted.SelectToken("objectRef"));
 
                     var prereq = condSystemCasted.SelectToken("prereq.Data");
                     var type = prereq.SelectToken("$type").Value<string>();
 
-                    subSubProps[logicalCondIndex + "Prereq"] = type;
+                    subSubProps["Prereq"] = type;
 
                     if (type == "DialogueChoiceHubPrereq")
-                        subSubProps[logicalCondIndex + "Is Choice Hub Active"] = prereq.SelectToken("isChoiceHubActive").Value<string>();
+                        subSubProps["Is Choice Hub Active"] = prereq.SelectToken("isChoiceHubActive").Value<string>();
 
                     if (type == "PlayerControlsDevicePrereq")
-                        subSubProps[logicalCondIndex + "Inverse"] = prereq.SelectToken("inverse").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Inverse"] = prereq.SelectToken("inverse").Value<string>() == "1" ? "True" : "False";
                 }
 
-                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
+                subProps["Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
             else if (nodeType == "questDistanceCondition")
             {
@@ -1479,16 +1485,16 @@ namespace Visualizer
 
                 if (nodeType2 == "questDistanceComparison_ConditionType")
                 {
-                    subSubProps[logicalCondIndex + "Comparison Type"] = condDistanceCasted.SelectToken("comparisonType").Value<string>();
-                    subSubProps[logicalCondIndex + "Entity Ref"] = GetNameFromUniversalRef(condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data"));
-                    //details[logicalCondIndex + "Entity Ref - Entity Reference"] = GetNameFromUniversalRef(condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data"));
-                    //details[logicalCondIndex + "Entity Ref - Main Player Object"] = condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data.mainPlayerObject").Value<string>() == "1" ? "True" : "False";
-                    //details[logicalCondIndex + "Entity Ref - Ref Local Player"] = condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data.refLocalPlayer").Value<string>() == "1" ? "True" : "False";
-                    subSubProps[logicalCondIndex + "Node Ref 2"] = ParseGameEntityReference(condDistanceCasted.SelectToken("distanceDefinition1.Data.nodeRef2"));
-                    subSubProps[logicalCondIndex + "Distance Value"] = condDistanceCasted.SelectToken("distanceDefinition2.Data.distanceValue").Value<string>();
+                    subSubProps["Comparison Type"] = condDistanceCasted.SelectToken("comparisonType").Value<string>();
+                    subSubProps["Entity Ref"] = GetNameFromUniversalRef(condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data"));
+                    //details["Entity Ref - Entity Reference"] = GetNameFromUniversalRef(condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data"));
+                    //details["Entity Ref - Main Player Object"] = condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data.mainPlayerObject").Value<string>() == "1" ? "True" : "False";
+                    //details["Entity Ref - Ref Local Player"] = condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data.refLocalPlayer").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Node Ref 2"] = ParseGameEntityReference(condDistanceCasted.SelectToken("distanceDefinition1.Data.nodeRef2"));
+                    subSubProps["Distance Value"] = condDistanceCasted.SelectToken("distanceDefinition2.Data.distanceValue").Value<string>();
                 }
 
-                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
+                subProps["Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
             else if (nodeType == "questSceneCondition")
             {
@@ -1500,13 +1506,13 @@ namespace Visualizer
 
                 if (nodeType2 == "questSectionNode_ConditionType")
                 {
-                    subSubProps[logicalCondIndex + "Scene File"] = condSceneCasted.SelectToken("sceneFile.DepotPath.$value").Value<string>();
-                    subSubProps[logicalCondIndex + "Scene Version"] = condSceneCasted.SelectToken("SceneVersion").Value<string>();
-                    subSubProps[logicalCondIndex + "Section Name"] = condSceneCasted.SelectToken("sectionName.$value").Value<string>();
-                    subSubProps[logicalCondIndex + "Cond Type"] = condSceneCasted.SelectToken("type").Value<string>();
+                    subSubProps["Scene File"] = condSceneCasted.SelectToken("sceneFile.DepotPath.$value").Value<string>();
+                    subSubProps["Scene Version"] = condSceneCasted.SelectToken("SceneVersion").Value<string>();
+                    subSubProps["Section Name"] = condSceneCasted.SelectToken("sectionName.$value").Value<string>();
+                    subSubProps["Cond Type"] = condSceneCasted.SelectToken("type").Value<string>();
                 }
 
-                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
+                subProps["Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
             else if (nodeType == "questJournalCondition")
             {
@@ -1518,12 +1524,12 @@ namespace Visualizer
 
                 if (nodeType2 == "questJournalEntryState_ConditionType")
                 {
-                    subSubProps[logicalCondIndex + "Inverted"] = journalCasted.SelectToken("inverted").Value<string>() == "1" ? "True" : "False";
-                    subSubProps.AddRange(ParseJournalPath(journalCasted.SelectToken("path.Data"), logicalCondIndex));
-                    subSubProps[logicalCondIndex + "State"] = journalCasted.SelectToken("state").Value<string>();
+                    subSubProps["Inverted"] = journalCasted.SelectToken("inverted").Value<string>() == "1" ? "True" : "False";
+                    subSubProps.AddRange(ParseJournalPath(journalCasted.SelectToken("path.Data")));
+                    subSubProps["State"] = journalCasted.SelectToken("state").Value<string>();
                 }
 
-                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
+                subProps["Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
             else if (nodeType == "questObjectCondition")
             {
@@ -1535,15 +1541,15 @@ namespace Visualizer
 
                 if (nodeType2 == "questInventory_ConditionType")
                 {
-                    subSubProps[logicalCondIndex + "Comparison Type"] = objectCasted.SelectToken("comparisonType").Value<string>();
-                    subSubProps[logicalCondIndex + "Is Player"] = objectCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
-                    subSubProps[logicalCondIndex + "Item ID"] = objectCasted.SelectToken("itemID.$value").Value<string>();
-                    subSubProps[logicalCondIndex + "Item Tag"] = objectCasted.SelectToken("itemTag.$value").Value<string>();
-                    subSubProps[logicalCondIndex + "Object Ref"] = ParseGameEntityReference(objectCasted.SelectToken("objectRef"));
-                    subSubProps[logicalCondIndex + "Quantity"] = objectCasted.SelectToken("quantity").Value<string>();
+                    subSubProps["Comparison Type"] = objectCasted.SelectToken("comparisonType").Value<string>();
+                    subSubProps["Is Player"] = objectCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Item ID"] = objectCasted.SelectToken("itemID.$value").Value<string>();
+                    subSubProps["Item Tag"] = objectCasted.SelectToken("itemTag.$value").Value<string>();
+                    subSubProps["Object Ref"] = ParseGameEntityReference(objectCasted.SelectToken("objectRef"));
+                    subSubProps["Quantity"] = objectCasted.SelectToken("quantity").Value<string>();
                 }
 
-                subProps[logicalCondIndex + "Subtype", GetNameFromClass(nodeType2)] = subSubProps;
+                subProps["Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
 
             details[logicalCondIndex + "Type", GetNameFromClass(nodeType)] = subProps;
@@ -1651,9 +1657,9 @@ namespace Visualizer
             return retVal;
         }
 
-        private static string GetScreenplayItem(string screenplayItemID, JToken scnSceneResource)
+        private static NodeProps GetScreenplayItem(string screenplayItemID, JToken scnSceneResource)
         {
-            string retVal = "ItemID: " + screenplayItemID + ", ";
+            NodeProps details = new();
 
             if (scnSceneResource != null)
             {
@@ -1661,13 +1667,16 @@ namespace Visualizer
                 {
                     if (screenplayStoreLines.SelectToken("itemId.id").Value<string>() == screenplayItemID)
                     {
-                        retVal += "LocStringID: " + screenplayStoreLines.SelectToken("locstringId.ruid").Value<string>();
+                        details["Item Id"] = screenplayStoreLines.SelectToken("itemId.id").Value<string>();
+                        details["Locstring Id"] = screenplayStoreLines.SelectToken("locstringId.ruid").Value<string>();
+                        details["Addressee"] = GetActor(screenplayStoreLines.SelectToken("addressee.id").Value<string>(), scnSceneResource);
+                        details["Speaker"] = GetActor(screenplayStoreLines.SelectToken("speaker.id").Value<string>(), scnSceneResource);
                         break;
                     }
                 }
             }
 
-            return retVal;
+            return details;
         }
 
         private static string GetPerformer(string performerID, JToken scnSceneResource)
@@ -1719,6 +1728,14 @@ namespace Visualizer
                     if (actor.SelectToken("actorId.id").Value<string>() == actorID)
                     {
                         actorName = "(" + actorID + ") " + actor.SelectToken("actorName").Value<string>();
+                        break;
+                    }
+                }
+                foreach (var actor in scnSceneResource.SelectToken("playerActors"))
+                {
+                    if (actor.SelectToken("actorId.id").Value<string>() == actorID)
+                    {
+                        actorName = "(" + actorID + ") " + actor.SelectToken("playerName").Value<string>();
                         break;
                     }
                 }
