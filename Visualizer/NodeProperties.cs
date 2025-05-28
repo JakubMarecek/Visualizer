@@ -1257,7 +1257,16 @@ namespace Visualizer
                     NodeProps subProps = new();
 
                     subProps["Caption"] = option.SelectToken("caption.$value").Value<string>();
-                    subProps["Type Properties"] = option.SelectToken("type.properties").Value<string>();
+
+                    var type = option.SelectToken("type.properties").Value<int>();
+                    var typesStr = "";
+                    //foreach (gameinteractionsChoiceType tp in Enum.GetValues<gameinteractionsChoiceType>())
+                    var enumVals = Enum.GetValues<gameinteractionsChoiceType>();
+                    for (int i = 0; i < enumVals.Length; i++)
+                    {
+                        if (isBitNActive(type, i)) typesStr += (typesStr != "" ? ", " : "") + Enum.GetName(enumVals[i]);
+                    }
+                    subProps["Type Properties"] = type.ToString() + " (" + typesStr + ")";
 
                     var iconTagIds = "";
                     foreach (var p in option.SelectToken("iconTagIds"))
@@ -1947,6 +1956,28 @@ namespace Visualizer
             {
                 return (number.ToString() ?? (three ? "000" : "00"));
             }
+        }
+
+        private enum gameinteractionsChoiceType
+        {
+            QuestImportant = 1,
+            AlreadyRead = 2,
+            Inactive = 4,
+            CheckSuccess = 8,
+            CheckFailed = 16,
+            InnerDialog = 32,
+            PossessedDialog = 64,
+            TimedDialog = 128,
+            Blueline = 256,
+            Pay = 512,
+            Selected = 1024,
+            Illegal = 2048,
+            Glowline = 4096
+        }
+
+        private static bool isBitNActive(int integerValue, int bitNumber)
+        {
+            return (integerValue & (1 << bitNumber)) != 0;
         }
     }
 
