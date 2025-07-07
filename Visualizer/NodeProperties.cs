@@ -484,6 +484,19 @@ namespace Visualizer
 
                     details["Type", nodeType3] = subSubProps;
                 }
+                if (nodeType2 == "questBriefingSequencePlayer_NodeType")
+                {
+                    subProps["Animation Name"] = uiManagerNodeCasted.SelectToken("animationName.$value").Value<string>();
+                    subProps["Audio Event"] = uiManagerNodeCasted.SelectToken("audioEvent.$value").Value<string>();
+                    subProps["Briefing Player Type"] = uiManagerNodeCasted.SelectToken("briefingPlayerType").Value<string>();
+                    subProps["Briefing Resource"] = uiManagerNodeCasted.SelectToken("briefingResource.DepotPath.$value").Value<string>();
+                    subProps["Briefing Type"] = uiManagerNodeCasted.SelectToken("briefingType").Value<string>();
+                    subProps["Enable Scanner"] = uiManagerNodeCasted.SelectToken("enableScanner").Value<string>() == "1" ? "True" : "False";
+                    subProps["End Marker Name"] = uiManagerNodeCasted.SelectToken("endMarkerName.$value").Value<string>();
+                    subProps["Function"] = uiManagerNodeCasted.SelectToken("function").Value<string>();
+                    subProps["Loop Type"] = uiManagerNodeCasted.SelectToken("loopType").Value<string>();
+                    subProps["Start Marker Name"] = uiManagerNodeCasted.SelectToken("startMarkerName.$value").Value<string>();
+                }
 
                 details["Type", nodeType2] = subProps;
             }
@@ -640,7 +653,7 @@ namespace Visualizer
                         subSubProps["Source"] = contentTokenManagerNodeCasted.SelectToken("source.$value").Value<string>();
                     }
 
-                    details["Type", nodeType3] = subSubProps;
+                    subProps["Type", nodeType3] = subSubProps;
                 }
 
                 details["Type", nodeType2] = subProps;

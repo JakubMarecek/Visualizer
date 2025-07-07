@@ -268,7 +268,7 @@ namespace Visualizer
 							}
 
 							var outputName = "";
-							if (outScksMapp == null) outputName = GetOutputsNames(nodeType, sck.SelectToken("stamp.name").ToObject<int>());
+							if (outScksMapp == null) outputName = GetOutputsNames(nodeType, sck.SelectToken("stamp.name").ToObject<int>(), sck.SelectToken("stamp.ordinal").ToObject<int>());
 
 							var perc = outputWeights.Count > 0 ? (" " + ((float)outputWeights[itemOuts.Count] / (float)outputWeightsTotal * 100).ToString("#.##") + "%") : "";
 
@@ -817,7 +817,7 @@ namespace Visualizer
 						if (Items.TryGetValue(sub.DestinationID, out var p))
 						//var p = Items[sub.DestinationID];
 						{
-							bool add1026 = false;
+							int specSocket = 0;
 							bool addOrd = false;
 
 							for (int j = 0; j < p.Inputs.Count; j++)
@@ -840,7 +840,7 @@ namespace Visualizer
 									var name = int.Parse(sub.Name);
 									if (p.Name == "scnQuestNode" && name == 1026)
 									{
-										add1026 = true;
+										specSocket = 1;
 									}
 								}
 
@@ -850,9 +850,9 @@ namespace Visualizer
 								}
 							}
 
-							if (add1026)
+							if (specSocket == 1)
 							{
-								p.Inputs.Add(new() { InputName = "Unknown", Name = "1026", Ordinal = "0" });
+								p.Inputs.Add(new() { InputName = "Disable Node", Name = "1026", Ordinal = "0" });
 								p.Inputs[p.Inputs.Count - 1].IsUsed = true;
 								//p.HighestName++;
 							}
@@ -1215,13 +1215,13 @@ namespace Visualizer
 			}
 		}
 
-		public static string GetOutputsNames(string nodeType, int index)
+		public static string GetOutputsNames(string nodeType, int index, int ordinal)
 		{
 			var name = "";
 
 			if (nodeType == "scnChoiceNode")
 			{
-				if (index == 0) name = "Option";
+				if (index == 0) name = "Option #" + ordinal.ToString();
 				if (index == 1) name = "AnyOption";
 				if (index == 2) name = "Immediate";
 				if (index == 3) name = "CancelFwd";
