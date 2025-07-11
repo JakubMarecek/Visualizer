@@ -568,6 +568,8 @@ namespace Visualizer
                 var actions = node.SelectToken("actions");
                 //details["Actions"] = actions.Count.ToString();
 
+                NodeProps subProps = new();
+
                 int counter = 1;
                 foreach (var action in actions)
                 {
@@ -577,7 +579,7 @@ namespace Visualizer
 
                     string nodeType2 = actionCasted.SelectToken("$type").Value<string>();
 
-                    NodeProps subProps = new();
+                    subProps["#" + counter + " Type"] = nodeType2;
 
                     if (nodeType2 == "questScene_NodeType")
                     {
@@ -604,10 +606,10 @@ namespace Visualizer
                         subProps["#" + counter + " Spawner Reference"] = actionCasted.SelectToken("spawnerReference.$value").Value<string>();
                     }
 
-                    details["Type", nodeType2] = subProps;
-
                     counter++;
                 }
+
+                details["Actions", ""] = subProps;
             }
             else if (nodeType == "questGameManagerNodeDefinition")
             {
