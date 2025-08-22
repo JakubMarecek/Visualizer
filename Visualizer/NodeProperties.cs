@@ -633,6 +633,8 @@ namespace Visualizer
 
                         counter++;
                     }
+
+                    subProps["Source"] = gameManagerCasted.SelectToken("source.$value").Value<string>();
                 }
                 if (nodeType2 == "questRumble_NodeType")
                 {
@@ -1189,6 +1191,33 @@ namespace Visualizer
                         subProps["Reset Dof"] = eventClass.SelectToken("Data.cameraOverrideSettings.resetDof").Value<string>() == "1" ? "True" : "False";
                         subProps["Reset Fov"] = eventClass.SelectToken("Data.cameraOverrideSettings.resetFov").Value<string>() == "1" ? "True" : "False";
                     }
+                    else if (evName == "scnGameplayTransitionEvent")
+                    {
+                        subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performer.id").Value<string>(), scnSceneResource);
+                        subProps["Veh State"] = eventClass.SelectToken("Data.vehState").Value<string>();
+                    }
+                    else if (evName == "scneventsSetAnimFeatureEvent")
+                    {
+                        subProps["Actor"] = GetActor(eventClass.SelectToken("Data.actorId.id").Value<string>(), scnSceneResource);
+                        subProps["Anim Feature Name"] = eventClass.SelectToken("Data.animFeatureName.$value").Value<string>();
+                    }
+                    else if (evName == "scnUnmountEvent")
+                    {
+                        subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performer.id").Value<string>(), scnSceneResource);
+                    }
+                    else if (evName == "scneventsVFXEvent")
+                    {
+                        subProps["Action"] = eventClass.SelectToken("Data.action").Value<string>();
+
+                        NodeProps subProps2 = new();
+                        subProps2["Effect ID"] = GetEffectID(eventClass.SelectToken("Data.effectEntry.effectInstanceId.effectId.id").Value<string>(), scnSceneResource);
+                        subProps2["Effect Instance ID"] = eventClass.SelectToken("Data.effectEntry.effectInstanceId.id").Value<string>();
+                        subProps2["Effect Name"] = eventClass.SelectToken("Data.effectEntry.effectName.$value").Value<string>();
+                        subProps["Effect Entry", ""] = subProps2;
+
+                        subProps["Mute Sound"] = eventClass.SelectToken("Data.muteSound").Value<string>() == "1" ? "True" : "False";
+                        subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performerId.id").Value<string>(), scnSceneResource);
+                    }
 
                     var timeBegin = int.Parse(eventClass.SelectToken("Data.startTime").Value<string>());
                     details["#" + counter.ToString() + " " + timeBegin.ToString() + "ms" + (dur != null ? (" > " + (timeBegin + int.Parse(dur)).ToString() + "ms") : "") + " ET:" + eventClass.SelectToken("Data.executionTagFlags").Value<string>(), evName] = subProps;
@@ -1701,6 +1730,25 @@ namespace Visualizer
             }
 
             return details;
+        }
+
+        private static string GetEffectID(string effectID, JToken scnSceneResource)
+        {
+            string retVal = "(" + effectID + ") ";
+
+            if (scnSceneResource != null)
+            {
+                foreach (var effectDefinitions in scnSceneResource.SelectToken("effectDefinitions"))
+                {
+                    if (effectDefinitions.SelectToken("id.id").Value<string>() == effectID)
+                    {
+                        retVal += effectDefinitions.SelectToken("effect.DepotPath.$value");
+                        break;
+                    }
+                }
+            }
+
+            return retVal;
         }
 
         private static string GetPerformer(string performerID, JToken scnSceneResource)

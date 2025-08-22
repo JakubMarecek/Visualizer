@@ -2,6 +2,9 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../../../../mnt/myshare/home_cloud_private/CP77p/LizziesBDs/source/raw/mod/arman3_lizzies_bds/quest"
 		}
 	],
 	"settings": {}
