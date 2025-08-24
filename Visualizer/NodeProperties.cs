@@ -1532,22 +1532,25 @@ namespace Visualizer
             {
                 var condDistanceCasted = node.SelectToken("type.Data");
 
-                string nodeType2 = condDistanceCasted.SelectToken("$type").Value<string>();
-
-                NodeProps subSubProps = new();
-
-                if (nodeType2 == "questDistanceComparison_ConditionType")
+                if (condDistanceCasted != null)
                 {
-                    subSubProps["Comparison Type"] = condDistanceCasted.SelectToken("comparisonType").Value<string>();
-                    subSubProps["Entity Ref"] = GetNameFromUniversalRef(condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data"));
-                    //details["Entity Ref - Entity Reference"] = GetNameFromUniversalRef(condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data"));
-                    //details["Entity Ref - Main Player Object"] = condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data.mainPlayerObject").Value<string>() == "1" ? "True" : "False";
-                    //details["Entity Ref - Ref Local Player"] = condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data.refLocalPlayer").Value<string>() == "1" ? "True" : "False";
-                    subSubProps["Node Ref 2"] = ParseGameEntityReference(condDistanceCasted.SelectToken("distanceDefinition1.Data.nodeRef2"));
-                    subSubProps["Distance Value"] = condDistanceCasted.SelectToken("distanceDefinition2.Data.distanceValue").Value<string>();
-                }
+                    string nodeType2 = condDistanceCasted.SelectToken("$type").Value<string>();
 
-                subProps["Subtype", GetNameFromClass(nodeType2)] = subSubProps;
+                    NodeProps subSubProps = new();
+
+                    if (nodeType2 == "questDistanceComparison_ConditionType")
+                    {
+                        subSubProps["Comparison Type"] = condDistanceCasted.SelectToken("comparisonType").Value<string>();
+                        subSubProps["Entity Ref"] = GetNameFromUniversalRef(condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data"));
+                        //details["Entity Ref - Entity Reference"] = GetNameFromUniversalRef(condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data"));
+                        //details["Entity Ref - Main Player Object"] = condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data.mainPlayerObject").Value<string>() == "1" ? "True" : "False";
+                        //details["Entity Ref - Ref Local Player"] = condDistanceCasted.SelectToken("distanceDefinition1.Data.entityRef.Data.refLocalPlayer").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Node Ref 2"] = ParseGameEntityReference(condDistanceCasted.SelectToken("distanceDefinition1.Data.nodeRef2"));
+                        subSubProps["Distance Value"] = condDistanceCasted.SelectToken("distanceDefinition2.Data.distanceValue").Value<string>();
+                    }
+
+                    subProps["Subtype", GetNameFromClass(nodeType2)] = subSubProps;
+                }
             }
             else if (nodeType == "questSceneCondition")
             {
