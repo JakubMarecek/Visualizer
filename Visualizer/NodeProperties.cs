@@ -1,8 +1,10 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Reflection.PortableExecutable;
 using System.Text.Json.Serialization;
 
@@ -185,13 +187,16 @@ namespace Visualizer
                 {
                     subProps["Entry Id"] = useWorkspotNodeCasted.SelectToken("entryId.id").Value<string>();
                     subProps["Exit Entry Id"] = useWorkspotNodeCasted.SelectToken("exitEntryId.id").Value<string>();
-                    subProps["Workspot Instance Id"] = useWorkspotNodeCasted.SelectToken("workspotInstanceId.id").Value<string>();
-                    subProps["Workspot Name"] = GetWorkspotPath(useWorkspotNodeCasted.SelectToken("workspotInstanceId.id").Value<string>(), scnSceneResource);
+                    subProps["Enable Idle Mode"] = useWorkspotNodeCasted.SelectToken("enableIdleMode").Value<string>() == "1" ? "True" : "False";
+                    subProps["Function"] = useWorkspotNodeCasted.SelectToken("function").Value<string>();
+                    subProps["Instance", ""] = GetWorkspotInfo(useWorkspotNodeCasted.SelectToken("workspotInstanceId.id").Value<string>(), scnSceneResource);
                 }
                 else if (nodeType2 == "questUseWorkspotParamsV1")
                 {
                     subProps["Entry Id"] = useWorkspotNodeCasted.SelectToken("entryId.id").Value<string>();
                     subProps["Exit Entry Id"] = useWorkspotNodeCasted.SelectToken("exitEntryId.id").Value<string>();
+                    subProps["Enable Idle Mode"] = useWorkspotNodeCasted.SelectToken("enableIdleMode").Value<string>() == "1" ? "True" : "False";
+                    subProps["Function"] = useWorkspotNodeCasted.SelectToken("function").Value<string>();
                     subProps["Workspot Node"] = useWorkspotNodeCasted.SelectToken("workspotNode.$value").Value<string>();
                 }
 
@@ -219,6 +224,24 @@ namespace Visualizer
                     subProps["Event Execution Tag"] = sceneManagerNodeCasted.SelectToken("eventExecutionTag.$value").Value<string>();
                     subProps["Mute"] = sceneManagerNodeCasted.SelectToken("mute").Value<string>() == "1" ? "True" : "False";
                     subProps["Scene File"] = sceneManagerNodeCasted.SelectToken("sceneFile.DepotPath.$value").Value<string>();
+                }
+                if (nodeType2 == "questPlayerLookAt_NodeType")
+                {
+                    subProps["Adjust Pitch"] = sceneManagerNodeCasted.SelectToken("adjustPitch").Value<string>() == "1" ? "True" : "False";
+                    subProps["Adjust Yaw"] = sceneManagerNodeCasted.SelectToken("adjustYaw").Value<string>() == "1" ? "True" : "False";
+                    subProps["Camera Input Mag To Break"] = sceneManagerNodeCasted.SelectToken("cameraInputMagToBreak").Value<string>();
+                    subProps["Duration"] = sceneManagerNodeCasted.SelectToken("duration").Value<string>();
+                    subProps["Ease In"] = sceneManagerNodeCasted.SelectToken("easeIn").Value<string>();
+                    subProps["Ease Out"] = sceneManagerNodeCasted.SelectToken("easeOut").Value<string>();
+                    subProps["End On Camera Input Applied"] = sceneManagerNodeCasted.SelectToken("endOnCameraInputApplied").Value<string>() == "1" ? "True" : "False";
+                    subProps["End On Target Reached"] = sceneManagerNodeCasted.SelectToken("endOnTargetReached").Value<string>() == "1" ? "True" : "False";
+                    subProps["End On Time Exceeded"] = sceneManagerNodeCasted.SelectToken("endOnTimeExceeded").Value<string>() == "1" ? "True" : "False";
+                    subProps["Max Duration"] = sceneManagerNodeCasted.SelectToken("maxDuration").Value<string>();
+                    subProps["Object Ref"] = ParseGameEntityReference(sceneManagerNodeCasted.SelectToken("objectRef"));
+                    subProps["Offset Pos"] = ParseVector(sceneManagerNodeCasted.SelectToken("offsetPos"));
+                    subProps["Precision"] = sceneManagerNodeCasted.SelectToken("precision").Value<string>();
+                    subProps["Slot Name"] = sceneManagerNodeCasted.SelectToken("slotName.$value").Value<string>();
+                    subProps["Use Offset To Player"] = sceneManagerNodeCasted.SelectToken("useOffsetToPlayer").Value<string>() == "1" ? "True" : "False";
                 }
 
                 details["Type", nodeType2] = subProps;
@@ -482,7 +505,7 @@ namespace Visualizer
                         subSubProps["Visible"] = tutorialCasted.SelectToken("visible").Value<string>() == "1" ? "True" : "False";
                     }
 
-                    details["Type", nodeType3] = subSubProps;
+                    subProps["Type", nodeType3] = subSubProps;
                 }
                 if (nodeType2 == "questBriefingSequencePlayer_NodeType")
                 {
@@ -496,6 +519,12 @@ namespace Visualizer
                     subProps["Function"] = uiManagerNodeCasted.SelectToken("function").Value<string>();
                     subProps["Loop Type"] = uiManagerNodeCasted.SelectToken("loopType").Value<string>();
                     subProps["Start Marker Name"] = uiManagerNodeCasted.SelectToken("startMarkerName.$value").Value<string>();
+                }
+                if (nodeType2 == "questSwitchToScenario_NodeType")
+                {
+                    subProps["End Scenario Name"] = uiManagerNodeCasted.SelectToken("endScenarioName.$value").Value<string>();
+                    subProps["Force Open During Fadeout"] = uiManagerNodeCasted.SelectToken("forceOpenDuringFadeout").Value<string>() == "1" ? "True" : "False";
+                    subProps["Start Scenario Name"] = uiManagerNodeCasted.SelectToken("startScenarioName.$value").Value<string>();
                 }
 
                 details["Type", nodeType2] = subProps;
@@ -758,8 +787,18 @@ namespace Visualizer
                         subSubProps["Status Effect ID"] = charParamsNodeCasted.SelectToken("statusEffectID.$value").Value<string>();
                         subSubProps["Status Effect Source Object"] = ParseGameEntityReference(charParamsNodeCasted.SelectToken("statusEffectSourceObject"));
                     }
+                    if (nodeType3 == "questCharacterManagerParameters_HealPlayer")
+                    {
+                        subSubProps["Heal"] = charParamsNodeCasted.SelectToken("heal").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Is Player"] = charParamsNodeCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Puppet Ref"] = ParseGameEntityReference(charParamsNodeCasted.SelectToken("puppetRef"));
+                        subSubProps["Remove Buffs"] = charParamsNodeCasted.SelectToken("removeBuffs").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Remove Debuffs"] = charParamsNodeCasted.SelectToken("removeDebuffs").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Remove Status Effects"] = charParamsNodeCasted.SelectToken("removeStatusEffects").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Reset Cyberdeck RAM"] = charParamsNodeCasted.SelectToken("resetCyberdeckRAM").Value<string>() == "1" ? "True" : "False";
+                    }
 
-                    details["Type", nodeType3] = subSubProps;
+                    subProps["Type", nodeType3] = subSubProps;
                 }
                 if (nodeType2 == "questCharacterManagerVisuals_NodeType")
                 {
@@ -791,7 +830,7 @@ namespace Visualizer
                         }
                     }
 
-                    details["Type", nodeType3] = subSubProps;
+                    subProps["Type", nodeType3] = subSubProps;
                 }
                 if (nodeType2 == "questCharacterManagerCombat_NodeType")
                 {
@@ -812,7 +851,7 @@ namespace Visualizer
                         subSubProps["Weapon ID"] = charCombatNodeCasted.SelectToken("weaponID.$value").Value<string>();
                     }
 
-                    details["Type", nodeType3] = subSubProps;
+                    subProps["Type", nodeType3] = subSubProps;
                 }
 
                 details["Type", nodeType2] = subProps;
@@ -1604,6 +1643,12 @@ namespace Visualizer
                     subSubProps["Object Ref"] = ParseGameEntityReference(objectCasted.SelectToken("objectRef"));
                     subSubProps["Quantity"] = objectCasted.SelectToken("quantity").Value<string>();
                 }
+                if (nodeType2 == "questDevice_ConditionType")
+                {
+                    subSubProps["Device Condition Function"] = objectCasted.SelectToken("deviceConditionFunction.$value").Value<string>();
+                    subSubProps["Device Controller Class"] = objectCasted.SelectToken("deviceControllerClass.$value").Value<string>();
+                    subSubProps["Object Ref"] = objectCasted.SelectToken("objectRef.$value").Value<string>();
+                }
 
                 subProps["Subtype", GetNameFromClass(nodeType2)] = subSubProps;
             }
@@ -1829,7 +1874,18 @@ namespace Visualizer
             var k = vec.SelectToken("k").Value<string>();
             var r = vec.SelectToken("r").Value<string>();
 
-            return "I: " + i + ", J: " + j + ", K: " + k + ", R: " + r;
+            Quaternion rot = new(
+                float.Parse(i, CultureInfo.InvariantCulture),
+                float.Parse(j, CultureInfo.InvariantCulture),
+                float.Parse(k, CultureInfo.InvariantCulture),
+                float.Parse(r, CultureInfo.InvariantCulture)
+            );
+
+            (Vector3, float) v = RotationConverting.Quaternion2Axis(rot);
+            Vector3 vm = RotationConverting.Angles2MagAxis(v);
+            vm = RotationConverting.Rad2Deg(vm);
+
+            return "I: " + i + ", J: " + j + ", K: " + k + ", R: " + r + " | Axis: X: " + vm.X.ToString() + ", Y: " + vm.Y.ToString() + ", Z: " + vm.Z.ToString();
         }
 
         private static string ParseVector(JToken vec)
@@ -1879,9 +1935,9 @@ namespace Visualizer
             return details;
         }
 
-        private static string GetWorkspotPath(string workspotID, JToken scnSceneResource)
+        private static NodeProps GetWorkspotInfo(string workspotID, JToken scnSceneResource)
         {
-            string retVal = "";
+            NodeProps retVal = new();
 
             if (scnSceneResource != null)
             {
@@ -1892,6 +1948,23 @@ namespace Visualizer
                     if (workspotInstance.SelectToken("workspotInstanceId.id").Value<string>() == workspotID)
                     {
                         dataID = workspotInstance.SelectToken("dataId.id").Value<string>();
+
+                        retVal["Instance ID"] = workspotID;
+
+                        retVal["Position"] = ParseVector(workspotInstance.SelectToken("localTransform.position"));
+                        retVal["Rotation"] = ParseQuaternion(workspotInstance.SelectToken("localTransform.orientation"));
+
+                        NodeProps marker = new();
+                        marker["Entity Ref"] = ParseGameEntityReference(workspotInstance.SelectToken("originMarker.entityRef"));
+                        marker["Is Mounted"] = workspotInstance.SelectToken("originMarker.isMounted").Value<string>() == "1" ? "True" : "False";
+                        marker["Local Marker Id"] = workspotInstance.SelectToken("originMarker.localMarkerId.$value").Value<string>();
+                        marker["Node Ref"] = workspotInstance.SelectToken("originMarker.nodeRef.$value").Value<string>();
+                        marker["Slot Name"] = workspotInstance.SelectToken("originMarker.slotName.$value").Value<string>();
+                        marker["Type"] = workspotInstance.SelectToken("originMarker.type").Value<string>();
+                        retVal["Origin Marker", ""] = marker;
+
+                        retVal["Play At Actor Location"] = workspotInstance.SelectToken("playAtActorLocation").Value<string>() == "1" ? "True" : "False";
+
                         break;
                     }
                 }
@@ -1906,7 +1979,7 @@ namespace Visualizer
                         {
                             if (workspotData.SelectToken("dataId.id").Value<string>() == dataID)
                             {
-                                retVal = Path.GetFileName(workspotData.SelectToken("workspotResource.DepotPath.$value").Value<string>());
+                                retVal["Resource Depot Path"] = Path.GetFileName(workspotData.SelectToken("workspotResource.DepotPath.$value").Value<string>());
                                 break;
                             }
                         }
