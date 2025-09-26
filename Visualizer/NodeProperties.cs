@@ -1144,7 +1144,6 @@ namespace Visualizer
                     else if (evName == "scnPlaySkAnimEvent")
                     {
                         subProps["Performer"] = GetPerformer(eventClass.SelectToken("Data.performer.id").Value<string>(), scnSceneResource);
-                        subProps["Origin Marker Node Ref"] = eventClass.SelectToken("Data.rootMotionData.originMarker.nodeRef.$value").Value<string>();
                         subProps["Actor Component"] = eventClass.SelectToken("Data.actorComponent.$value").Value<string>();
 
                         var animType = eventClass.SelectToken("Data.animName.Data.type").Value<string>();
@@ -1157,6 +1156,12 @@ namespace Visualizer
 
                         if (animType == "container")
                             subProps.AddRange(GetRIDAnimDetails("", eventClass?.SelectToken("Data.animName.Data.unk2[0]")?.Value<string>(), "", scnSceneResource));
+
+                        NodeProps npOrigin = new();
+                        npOrigin["Marker Node Ref"] = eventClass.SelectToken("Data.rootMotionData.originMarker.nodeRef.$value").Value<string>();
+                        npOrigin["Offset Pos"] = ParseVector(eventClass.SelectToken("Data.rootMotionData.originOffset.position"));
+                        npOrigin["Offset Rot"] = ParseQuaternion(eventClass.SelectToken("Data.rootMotionData.originOffset.orientation"));
+                        subProps["Origin", ""] = npOrigin;
                     }
                     else if (evName == "scnPlayRidAnimEvent")
                     {
