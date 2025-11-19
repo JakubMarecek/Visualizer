@@ -1017,7 +1017,7 @@ namespace Visualizer
 					foreach (var sub in item.Outputs)
 					{
 						if (ignoreDrawChilds.TryGetValue(id, out Tuple<string, string> value3))
-							if (sub.Name == value3.Item1 && sub.Ordinal == value3.Item2)
+							if ((sub.Name == value3.Item1 && sub.Ordinal == value3.Item2) || (value3.Item1 == "-1" && value3.Item2 == "-1"))
 								continue;
 
 						foreach (var sub2 in sub.Connections)
