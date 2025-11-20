@@ -1016,6 +1016,8 @@ namespace Visualizer
                     var splineParamsCasted = node.SelectToken("nodeParams.Data");
 
                     subProps["Spline Node Ref"] = splineParamsCasted.SelectToken("splineNodeRef.$value").Value<string>();
+                    subProps["Reverse"] = splineParamsCasted.SelectToken("reverse").Value<string>() == "1" ? "True" : "False";
+                    subProps["Start From Closest Point"] = splineParamsCasted.SelectToken("startFromClosestPoint").Value<string>() == "1" ? "True" : "False";
                 }
 
                 details["Type", nodeType2] = subProps;
