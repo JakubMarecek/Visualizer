@@ -877,6 +877,7 @@ namespace Visualizer
 
 			Dictionary<string, string> drawWithin = [];
 			Dictionary<string, Tuple<string, string>> ignoreDrawChilds = [];
+			Dictionary<string, Tuple<string, string>> ignoreChildYPos = [];
 			Dictionary<string, string> notes = [];
 			//drawWithin.Add("14100", "102");
 			string fileNameVisul = openedFile + ".visualizer.json";
@@ -889,6 +890,12 @@ namespace Visualizer
 				foreach (var dw in visulDrawWithin)
 				{
 					drawWithin.Add(dw.SelectToken("NodeID").Value<string>(), dw.SelectToken("DrawParent").Value<string>());
+				}
+
+				var visulIgnoreChildYPos = visulJsonData.SelectTokens("IgnoreChildYPos.[*]");
+				foreach (var dw in visulIgnoreChildYPos)
+				{
+                    ignoreChildYPos.Add(dw.SelectToken("NodeID").Value<string>(), new(dw.SelectToken("Name").Value<string>(), dw.SelectToken("Ordinal").Value<string>()));
 				}
 
 				var visulIgnoreDrawChilds = visulJsonData.SelectTokens("IgnoreDrawChilds.[*]");
@@ -1020,7 +1027,10 @@ namespace Visualizer
 							if ((sub.Name == value3.Item1 && sub.Ordinal == value3.Item2) || (value3.Item1 == "-1" && value3.Item2 == "-1"))
 								continue;
 
-						foreach (var sub2 in sub.Connections)
+						int aaa = 0;
+						int bbb = y;
+
+                        foreach (var sub2 in sub.Connections)
 						{
 							if (Items.TryGetValue(sub2.DestinationID, out var p))
 							{
@@ -1028,12 +1038,21 @@ namespace Visualizer
 									if (value2 != id)
 										continue;
 
-								childH += dr(sub2.DestinationID, p, xs + boxWidth + space);
+                                aaa += dr(sub2.DestinationID, p, xs + boxWidth + space);
 							}
 						}
+
+						childH += aaa;
+
+						if (ignoreChildYPos.TryGetValue(id, out Tuple<string, string> value4))
+							if ((sub.Name == value4.Item1 && sub.Ordinal == value4.Item2))
+                            {
+                                childH -= aaa;
+								y = bbb;
+                            }
 					}
 
-					thisH += childH;
+                    thisH += childH;
 
 					var tmpI = 0;
 					var tmpO = 0;
