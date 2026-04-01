@@ -362,6 +362,15 @@ namespace Visualizer
                     subProps["Name"] = node.SelectToken("event.Data.name.$value").Value<string>();
                     subProps["Time To Live"] = node.SelectToken("event.Data.timeToLive").Value<string>();
                 }
+                if (nodeType2 == "VehicleQuestAVThrusterEvent")
+                {
+                    subProps["Enable"] = node.SelectToken("event.Data.enable").Value<string>() == "1" ? "True" : "False";
+                }
+                if (nodeType2 == "VehicleQuestCrystalDomeEvent")
+                {
+                    subProps["Remove Quest Control"] = node.SelectToken("event.Data.removeQuestControl").Value<string>() == "1" ? "True" : "False";
+                    subProps["Toggle"] = node.SelectToken("event.Data.toggle").Value<string>() == "1" ? "True" : "False";
+                }
 
                 details["Event", nodeType2] = subProps;
                 details["Is Object Player"] = node.SelectToken("isObjectPlayer").Value<string>() == "1" ? "True" : "False";
@@ -1051,6 +1060,15 @@ namespace Visualizer
                     subProps["Destination Offset"] = ParseVector(vehicleNodeCasted.SelectToken("params.destinationOffset"));
                     subProps["Destination Ref"] = GetNameFromUniversalRef(vehicleNodeCasted.SelectToken("params.destinationRef.Data"));
                 }
+                if (nodeType2 == "questToggleDoor_NodeType")
+                {
+                    subProps["Door"] = vehicleNodeCasted.SelectToken("door").Value<string>();
+                    subProps["Door Action"] = vehicleNodeCasted.SelectToken("doorAction").Value<string>();
+                    subProps["Door ID"] = vehicleNodeCasted.SelectToken("doorID.$value").Value<string>();
+                    subProps["Force Scene"] = vehicleNodeCasted.SelectToken("forceScene").Value<string>() == "1" ? "True" : "False";
+                    subProps["To Open"] = vehicleNodeCasted.SelectToken("toOpen").Value<string>() == "1" ? "True" : "False";
+                    subProps["Vehicle Ref"] = ParseGameEntityReference(vehicleNodeCasted.SelectToken("vehicleRef"));
+                }
 
                 details["Type", nodeType2] = subProps;
             }
@@ -1104,7 +1122,7 @@ namespace Visualizer
             return details;
         }
 
-        public static NodeProps GetPropertiesForSectionNode(JToken node, JToken scnSceneResource = null)
+        public static NodeProps GetPropertiesForSectionNode(JToken node, JToken scnSceneResource = null, Dictionary<string, string> stringtable = null)
         {
             NodeProps details = new();
 
@@ -1341,7 +1359,7 @@ namespace Visualizer
 
                 var optionsArr = node.SelectToken("options");
 
-                int counter = 1;
+                int counter = 0;
                 foreach (var option in optionsArr)
                 {
                     NodeProps subProps = new();
@@ -1368,7 +1386,7 @@ namespace Visualizer
                     NodeProps subPropsConds = GetPropertiesForConditions(option.SelectToken("questCondition.Data"));
                     subProps["Quest Condition", ""] = subPropsConds;
 
-                    details["Option #" + counter, GetScreenplayOption(option.SelectToken("screenplayOptionId.id").Value<string>(), scnSceneResource)] = subProps;
+                    details["Option #" + counter, GetScreenplayOption(option.SelectToken("screenplayOptionId.id").Value<string>(), scnSceneResource, stringtable)] = subProps;
                     counter++;
                 }
 
@@ -1746,7 +1764,7 @@ namespace Visualizer
             return details;
         }
 
-        private static string GetScreenplayOption(string screenplayOptionID, JToken scnSceneResource)
+        private static string GetScreenplayOption(string screenplayOptionID, JToken scnSceneResource, Dictionary<string, string> stringtable)
         {
             string retVal = "OptionID: " + screenplayOptionID + ", ";
 
@@ -1756,7 +1774,15 @@ namespace Visualizer
                 {
                     if (screenplayStoreOptions.SelectToken("itemId.id").Value<string>() == screenplayOptionID)
                     {
-                        retVal += "LocStringID: " + screenplayStoreOptions.SelectToken("locstringId.ruid").Value<string>();
+                        var stringID = screenplayStoreOptions.SelectToken("locstringId.ruid").Value<string>();
+                        retVal += "LocStringID: " + stringID;
+                        if (stringtable != null)
+                        {
+                            if (stringtable.TryGetValue(stringID, out var stringVal))
+                            {
+                                retVal += ", Val: " + stringVal;
+                            }
+                        }
                         break;
                     }
                 }

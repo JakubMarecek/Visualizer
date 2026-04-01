@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using WpfPanAndZoom.CustomControls;
 
 namespace Visualizer
@@ -329,7 +330,10 @@ namespace Visualizer
 							questNodesID.Add(nodeBaseID);
 					}
 					else
-						prms = NodeProperties.GetPropertiesForSectionNode(it, rootChunk);
+					{
+						var stringtable = GetStringtable();
+						prms = NodeProperties.GetPropertiesForSectionNode(it, rootChunk, stringtable);
+					}
 					//if (nodeType == "scnSectionNode" || nodeType == "scnRewindableSectionNode") prms = NodeProperties.GetPropertiesForSectionNode(it);
 					//if (nodeType == "scnStartNode" || nodeType == "scnEndNode") prms = NodeProperties.GetPropertiesForSectionNode(it, rootChunk);
 
@@ -1414,6 +1418,22 @@ namespace Visualizer
             foreach (var c in a)
                 if (!linesColors.Contains(c))
                     linesColors.Add(c);*/
+		}
+
+		private Dictionary<string, string> GetStringtable()
+		{
+			var outData = new Dictionary<string, string>();
+
+			var path = openedFile.Split(Path.DirectorySeparatorChar + "source" + Path.DirectorySeparatorChar + "raw" + Path.DirectorySeparatorChar);
+			var xStringtable = XDocument.Load(path[0] + Path.DirectorySeparatorChar + "_langs.xml");
+			var xSubtitles = xStringtable.Element("Languages").Element("Subtitles").Elements("Entry");
+			
+			foreach (var xSubtitle in xSubtitles)
+			{
+				outData.Add(xSubtitle.Element("StringId").Value, xSubtitle.Element("en-us").Value);
+			}
+
+			return outData;
 		}
 	}
 
