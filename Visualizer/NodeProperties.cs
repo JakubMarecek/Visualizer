@@ -806,6 +806,56 @@ namespace Visualizer
                         subSubProps["Remove Status Effects"] = charParamsNodeCasted.SelectToken("removeStatusEffects").Value<string>() == "1" ? "True" : "False";
                         subSubProps["Reset Cyberdeck RAM"] = charParamsNodeCasted.SelectToken("resetCyberdeckRAM").Value<string>() == "1" ? "True" : "False";
                     }
+                    if (nodeType3 == "questCharacterManagerParameters_SetAttitudeGroupForPuppet")
+                    {
+                        subSubProps["Group Name"] = charParamsNodeCasted.SelectToken("groupName.$value").Value<string>();
+                        subSubProps["Is Player"] = charParamsNodeCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Puppet Ref"] = ParseGameEntityReference(charParamsNodeCasted.SelectToken("puppetRef"));
+                    }
+                    if (nodeType3 == "questCharacterManagerParameters_SetGroupsAttitude")
+                    {
+                        subSubProps["Attitude"] = charParamsNodeCasted.SelectToken("attitude").Value<string>();
+                        subSubProps["Group 1 Name"] = charParamsNodeCasted.SelectToken("group1Name.$value").Value<string>();
+                        subSubProps["Group 2 Name"] = charParamsNodeCasted.SelectToken("group2Name.$value").Value<string>();
+                        subSubProps["Set"] = charParamsNodeCasted.SelectToken("set").Value<string>() == "1" ? "True" : "False";
+                    }
+                    if (nodeType3 == "questCharacterManagerParameters_SetReactionPreset")
+                    {
+                        subSubProps["Puppet Ref"] = ParseGameEntityReference(charParamsNodeCasted.SelectToken("puppetRef"));
+
+                        var reactionPresetCasted = charParamsNodeCasted.SelectToken("recordSelector.Data");
+
+                        string nodeType4 = reactionPresetCasted.SelectToken("$type").Value<string>();
+
+                        NodeProps subSubSubProps = new();
+
+                        if (nodeType4 == "questReactionPresetRecordSelector")
+                        {
+                            subSubSubProps["Civilian Record ID"] = reactionPresetCasted.SelectToken("civilianRecordID.$value").Value<string>();
+                            subSubSubProps["Corpo Record ID"] = reactionPresetCasted.SelectToken("corpoRecordID.$value").Value<string>();
+                            subSubSubProps["Ganger Record ID"] = reactionPresetCasted.SelectToken("gangerRecordID.$value").Value<string>();
+                            subSubSubProps["Is Civilian"] = reactionPresetCasted.SelectToken("isCivilian").Value<string>() == "1" ? "True" : "False";
+                            subSubSubProps["Is Corpo"] = reactionPresetCasted.SelectToken("isCorpo").Value<string>() == "1" ? "True" : "False";
+                            subSubSubProps["Is Ganger"] = reactionPresetCasted.SelectToken("isGanger").Value<string>() == "1" ? "True" : "False";
+                            subSubSubProps["Is Mechanical"] = reactionPresetCasted.SelectToken("isMechanical").Value<string>() == "1" ? "True" : "False";
+                            subSubSubProps["Is NoReaction"] = reactionPresetCasted.SelectToken("isNoReaction").Value<string>() == "1" ? "True" : "False";
+                            subSubSubProps["Is Police"] = reactionPresetCasted.SelectToken("isPolice").Value<string>() == "1" ? "True" : "False";
+                            subSubSubProps["Mechanical Record ID"] = reactionPresetCasted.SelectToken("mechanicalRecordID.$value").Value<string>();
+                            subSubSubProps["No Reaction Record ID"] = reactionPresetCasted.SelectToken("noReactionRecordID.$value").Value<string>();
+                            subSubSubProps["Police Record ID"] = reactionPresetCasted.SelectToken("policeRecordID.$value").Value<string>();
+                            subSubSubProps["Set Default"] = reactionPresetCasted.SelectToken("setDefault").Value<string>() == "1" ? "True" : "False";
+                        }
+
+                        subSubProps["Record Selector", nodeType4] = subSubSubProps;
+                    }
+                    if (nodeType3 == "questCharacterManagerParameters_SetMortality")
+                    {
+                        subSubProps["Is Player"] = charParamsNodeCasted.SelectToken("isPlayer").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Puppet Ref"] = ParseGameEntityReference(charParamsNodeCasted.SelectToken("puppetRef"));
+                        subSubProps["Reset To Default"] = charParamsNodeCasted.SelectToken("resetToDefault").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Source"] = charParamsNodeCasted.SelectToken("source.$value").Value<string>();
+                        subSubProps["State"] = charParamsNodeCasted.SelectToken("state").Value<string>();
+                    }
 
                     subProps["Type", nodeType3] = subSubProps;
                 }
@@ -1114,6 +1164,44 @@ namespace Visualizer
                     subProps["Type"] = paramsCasted.SelectToken("type").Value<string>();
                     subProps["Unequip Duration Override"] = paramsCasted.SelectToken("unequipDurationOverride").Value<string>();
                     subProps["Unequip Types"] = paramsCasted.SelectToken("unequipTypes").Value<string>();
+                }
+
+                details["Params", nodeType2] = subProps;
+            }
+            else if (nodeType == "questMiscAICommandNode")
+            {
+                details["Entity Reference"] = ParseGameEntityReference(node.SelectToken("entityReference"));
+                details["Function"] = node.SelectToken("function.$value").Value<string>();
+                //details["Params"] = node.SelectToken("params.Data.$type").Value<string>();
+
+                var paramsCasted = node.SelectToken("params.Data");
+
+                string nodeType2 = paramsCasted.SelectToken("$type").Value<string>();
+
+                NodeProps subProps = new();
+
+                if (nodeType2 == "AIAssignRoleCommandParams")
+                {
+                    var roleCasted = paramsCasted.SelectToken("role.Data");
+
+                    string nodeType4 = roleCasted.SelectToken("$type").Value<string>();
+
+                    NodeProps subSubProps = new();
+
+                    if (nodeType4 == "AIFollowerRole")
+                    {
+                        subSubProps["Attitude Group Name"] = roleCasted.SelectToken("attitudeGroupName.$value").Value<string>();
+                        subSubProps["Follower Ref"] = ParseGameEntityReference(roleCasted.SelectToken("followerRef"));
+
+                        subSubProps["Is Friend Melee"] = roleCasted.SelectToken("isFriendMelee").Value<string>() == "1" ? "True" : "False";
+                        subSubProps["Is Owner Sniper"] = roleCasted.SelectToken("isOwnerSniper").Value<string>() == "1" ? "True" : "False";
+                    }
+
+                    subProps["Role", nodeType4] = subSubProps;
+                }
+                if (nodeType2 == "AIHoldPositionCommandParams")
+                {
+                    subProps["Duration"] = paramsCasted.SelectToken("duration").Value<string>();
                 }
 
                 details["Params", nodeType2] = subProps;
@@ -1535,6 +1623,23 @@ namespace Visualizer
                     subSubProps["Object Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("objectRef"));
                     subSubProps["Source"] = GetNameFromUniversalRef(condCharacterCasted.SelectToken("source"));
                     subSubProps["Unconscious"] = condCharacterCasted.SelectToken("unconscious").Value<string>() == "1" ? "True" : "False";
+                }
+                if (nodeType2 == "questCharacterMount_ConditionType")
+                {
+                    subSubProps["Any Child"] = condCharacterCasted.SelectToken("anyChild").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Any Parent"] = condCharacterCasted.SelectToken("anyParent").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Condition"] = condCharacterCasted.SelectToken("condition").Value<string>();
+                    subSubProps["Enter Animation Finished"] = condCharacterCasted.SelectToken("enterAnimationFinished").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Child Is Player"] = condCharacterCasted.SelectToken("childIsPlayer").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Child Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("childRef"));
+                    subSubProps["Parent Is Player"] = condCharacterCasted.SelectToken("parentIsPlayer").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Parent Ref"] = ParseGameEntityReference(condCharacterCasted.SelectToken("parentRef"));
+                    subSubProps["Player Vehicle Name"] = condCharacterCasted.SelectToken("playerVehicleName").Value<string>();
+                    subSubProps["Role"] = condCharacterCasted.SelectToken("role").Value<string>();
+                    subSubProps["Use Players Vehicle"] = condCharacterCasted.SelectToken("usePlayersVehicle").Value<string>() == "1" ? "True" : "False";
+                    subSubProps["Vehicle Afiliation"] = condCharacterCasted.SelectToken("vehicleAfiliation").Value<string>();
+                    subSubProps["Vehicle Origin"] = condCharacterCasted.SelectToken("vehicleOrigin").Value<string>();
+                    subSubProps["Vehicle Type"] = condCharacterCasted.SelectToken("vehicleType").Value<string>();
                 }
 
                 subProps["Subtype", GetNameFromClass(nodeType2)] = subSubProps;
