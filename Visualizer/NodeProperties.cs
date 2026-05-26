@@ -271,6 +271,8 @@ namespace Visualizer
             }
             else if (nodeType == "questAudioNodeDefinition")
             {
+                if (!HasType(node)) return details;
+
                 var audioNodeCasted = node.SelectToken("type.Data");
 
                 string nodeType2 = audioNodeCasted.SelectToken("$type").Value<string>();
@@ -1208,6 +1210,15 @@ namespace Visualizer
             }
 
             return details;
+        }
+
+        private static bool HasType(JToken node)
+        {
+            var typeDataCheck = node.SelectToken("type.Data");
+            if (typeDataCheck == null)
+                return false;
+
+            return true;
         }
 
         public static NodeProps GetPropertiesForSectionNode(JToken node, JToken scnSceneResource = null, Dictionary<string, string> stringtable = null)
