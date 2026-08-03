@@ -1,4 +1,5 @@
-﻿using Avalonia.Controls;
+﻿using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
@@ -110,17 +111,163 @@ namespace Visualizer
 			}
 		}
 
-		private async void Window_Loaded(object sender, RoutedEventArgs e)
+        private string GetViewSaveFile(string view)
+        {
+            return openedFile + ".visualizer_view_" + view + ".json";
+        }
+
+        private void saveViewBtn_Click(object sender, RoutedEventArgs e)
+        {
+            var tag = (sender as Button).Tag as string;
+            var boxProps = new List<BoxProp>();
+
+            foreach (var child in canvas.Children)
+            {
+                if (child is Widget box)
+                {
+                    if (box.ID >= 0 && box.WasMoved)
+                    {
+                        var a = canvas.Transform2(new(Canvas.GetLeft(box), Canvas.GetTop(box)));
+                        boxProps.Add(new() { NodeID = box.ID, PosX = Canvas.GetLeft(box), PosY = Canvas.GetTop(box) });
+                    }
+                }
+            }
+
+			var transformMatrix = canvas.GetTransform().Matrix;
+			var jRoot = new JObject(
+				new JProperty("TransformMatrix",
+					new JObject(
+						new JProperty("M11", transformMatrix.M11),
+						new JProperty("M12", transformMatrix.M12),
+						new JProperty("M13", transformMatrix.M13),
+						new JProperty("M21", transformMatrix.M21),
+						new JProperty("M22", transformMatrix.M22),
+						new JProperty("M23", transformMatrix.M23),
+						new JProperty("M31", transformMatrix.M31),
+						new JProperty("M32", transformMatrix.M32),
+						new JProperty("M33", transformMatrix.M33)
+					)
+				),
+                new JProperty("Zoom", canvas.GetZoom()),
+                new JProperty("Boxes",
+                    JArray.FromObject(boxProps)
+                )
+			);
+
+            File.WriteAllText(GetViewSaveFile(tag), JsonConvert.SerializeObject(jRoot, Formatting.Indented));
+        }
+
+        private void loadViewBtn_Click(object sender, RoutedEventArgs e)
+        {
+            var tag = (sender as Button).Tag as string;
+            var boxProps = new List<BoxProp>();
+            var fView = GetViewSaveFile(tag);
+
+            if (File.Exists(fView))
+            {
+				var jData = JObject.Parse(File.ReadAllText(fView));
+                //boxProps = JsonConvert.DeserializeObject<List<BoxProp>>(File.ReadAllText(fView));
+                boxProps = jData.SelectToken("Boxes").ToObject<List<BoxProp>>();
+
+                //if (boxProps.Count > 0)
+                {
+					var origZoom = canvas.GetZoom();
+					var newZoom = jData.SelectToken("Zoom").ToObject<int>();
+
+                    var transformMatrix = jData.SelectToken("TransformMatrix");
+                    canvas.SetTransform(
+                        transformMatrix.SelectToken("M11").ToObject<double>(),
+                        transformMatrix.SelectToken("M12").ToObject<double>(),
+                        transformMatrix.SelectToken("M13").ToObject<double>(),
+                        transformMatrix.SelectToken("M21").ToObject<double>(),
+                        transformMatrix.SelectToken("M22").ToObject<double>(),
+                        transformMatrix.SelectToken("M23").ToObject<double>(),
+                        transformMatrix.SelectToken("M31").ToObject<double>(),
+                        transformMatrix.SelectToken("M32").ToObject<double>(),
+                        transformMatrix.SelectToken("M33").ToObject<double>()
+                    );
+					canvas.SetZoom(newZoom);
+
+                    foreach (var child in canvas.Children)
+                    {
+                        if (child is Widget box)
+                        {
+                            //if (box.ID >= 0)
+                            {
+                                var boxProp = boxProps.SingleOrDefault(a => a.NodeID == box.ID);
+                                if (boxProp != null)
+                                {
+                                    Canvas.SetLeft(box, boxProp.PosX);
+                                    Canvas.SetTop(box, boxProp.PosY);
+                                    box.WasMoved = true;
+                                }
+                                else
+                                {
+                                    float scaleFactor = canvas.Zoomfactor;
+                                    if (origZoom > 0)
+                                    {
+                                        scaleFactor = 1f / scaleFactor;
+                                    }
+
+                                    for (int i = 0; i < Math.Abs(origZoom); i++)
+                                    {
+                                        double x = Canvas.GetLeft(child);
+                                        double y = Canvas.GetTop(child);
+
+                                        double sx = x * scaleFactor;
+                                        double sy = y * scaleFactor;
+
+                                        Canvas.SetLeft(child, sx);
+                                        Canvas.SetTop(child, sy);
+                                    }
+
+                                    scaleFactor = canvas.Zoomfactor;
+                                    if (newZoom < 0)
+                                    {
+                                        scaleFactor = 1f / scaleFactor;
+                                    }
+
+                                    for (int i = 0; i < Math.Abs(newZoom); i++)
+                                    {
+                                        double x = Canvas.GetLeft(child);
+                                        double y = Canvas.GetTop(child);
+
+                                        double sx = x * scaleFactor;
+                                        double sy = y * scaleFactor;
+
+                                        Canvas.SetLeft(child, sx);
+                                        Canvas.SetTop(child, sy);
+                                    }
+                                }
+
+                                UpdateLine(box.ID);
+                            }
+                        }
+                    }
+
+                    canvas.ShowOutside();
+                    canvas.SetHiddenShown();
+                    canvas.HideOutside();
+                }
+            }
+        }
+
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
 		{
 			try
-			{
-				var args = Environment.GetCommandLineArgs();
-				if (args.Length > 1)
-					openedFile = args[1];
+            {
+                var args = Environment.GetCommandLineArgs();
+                var arguments = new Arguments(args);
 
-				if (openedFile == "")
-				{
-					FilePickerOpenOptions opts = new();
+                if (arguments["wndx"] != null) this.Width = double.Parse(arguments["wndx"]);
+                if (arguments["wndy"] != null) this.Width = double.Parse(arguments["wndy"]);
+
+                if (args.Length > 1)
+                    openedFile = args[1];
+
+                if (openedFile == "" || !File.Exists(openedFile))
+                {
+                    FilePickerOpenOptions opts = new();
 					opts.AllowMultiple = false;
 					opts.FileTypeFilter = new FilePickerFileType[] { new("Json") { Patterns = new[] { "*.scene.json", "*.questphase.json" } } };
 					opts.Title = "Select json";
@@ -189,7 +336,7 @@ namespace Visualizer
 				return b;
 			}*/
 
-			List<string> foundHandleIDs = [];
+                                    List<string> foundHandleIDs = [];
 			var handleIDs = jsonData.Descendants().OfType<JProperty>().Where(a => a.Name.ToString() == "HandleId");
 			foreach (var handleID in handleIDs)
 			{
@@ -223,7 +370,9 @@ namespace Visualizer
 					NotablePoints.Add(ntb.SelectToken("nodeId.id").ToObject<int>(), ntb.SelectToken("name.$value").ToString());
 				}
 
-				var graph = jsonData.SelectToken("Data.RootChunk.sceneGraph.Data.graph");
+                var stringtable = GetStringtable();
+
+                var graph = jsonData.SelectToken("Data.RootChunk.sceneGraph.Data.graph");
 				foreach (var g in graph)
 				{
 					var it = g.SelectToken("Data");
@@ -331,7 +480,6 @@ namespace Visualizer
 					}
 					else
 					{
-						var stringtable = GetStringtable();
 						prms = NodeProperties.GetPropertiesForSectionNode(it, rootChunk, stringtable);
 					}
 					//if (nodeType == "scnSectionNode" || nodeType == "scnRewindableSectionNode") prms = NodeProperties.GetPropertiesForSectionNode(it);
@@ -1425,7 +1573,14 @@ namespace Visualizer
 			var outData = new Dictionary<string, string>();
 
 			var path = openedFile.Split(Path.DirectorySeparatorChar + "source" + Path.DirectorySeparatorChar + "raw" + Path.DirectorySeparatorChar);
-			var xStringtable = XDocument.Load(path[0] + Path.DirectorySeparatorChar + "_langs.xml");
+			var strFile = path[0] + Path.DirectorySeparatorChar + "_langs.xml";
+			if (!File.Exists(strFile))
+            {
+                HandleDebug($"Stringtable file not found!");
+                return outData;
+			}
+
+            var xStringtable = XDocument.Load(strFile);
 			var xSubtitles = xStringtable.Element("Languages").Element("Subtitles").Elements("Entry");
 			
 			foreach (var xSubtitle in xSubtitles)
@@ -1544,5 +1699,14 @@ namespace Visualizer
 		public string SourceHandleID { get; set; }
 
 		public string DestinationHandleID { get; set; }
-	}
+    }
+
+    public class BoxProp
+    {
+        public int NodeID;
+
+        public double PosX;
+
+        public double PosY;
+    }
 }

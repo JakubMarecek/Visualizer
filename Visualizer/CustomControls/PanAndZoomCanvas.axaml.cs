@@ -233,9 +233,50 @@ namespace WpfPanAndZoom.CustomControls
 		{
 			child.RenderTransformOrigin = new(new(0, 0), RelativeUnit.Absolute);
 			child.RenderTransform = _transform;
-		}
+        }
 
-		/*public void ResetZoom()
+        public void SetTransform(
+            double scaleX,
+            double skewY,
+            double perspX,
+            double skewX,
+            double scaleY,
+            double perspY,
+            double offsetX,
+            double offsetY,
+            double perspZ
+			)
+        {
+            _transform = new MatrixTransform();
+			_transform.Matrix = new(
+                scaleX,
+                skewY,
+                perspX,
+                skewX,
+                scaleY,
+                perspY,
+                offsetX,
+                offsetY,
+                perspZ
+            );
+        }
+
+        public void SetZoom(int val)
+        {
+			zoom = val;
+        }
+
+        public MatrixTransform GetTransform()
+        {
+            return _transform;
+        }
+
+        public int GetZoom()
+        {
+            return zoom;
+        }
+
+        /*public void ResetZoom()
         {
             for (int i = 0; i < Math.Abs(zoom); i++)
             {
@@ -247,7 +288,7 @@ namespace WpfPanAndZoom.CustomControls
             zoom = 0;
         }*/
 
-		public Point Transform(Point source)
+        public Point Transform(Point source)
 		{
 			return _transform.Matrix.Invert().Transform(source);
 		}
@@ -282,7 +323,12 @@ namespace WpfPanAndZoom.CustomControls
 			return Vector.Subtract(a, mousePosSource);
 		}
 
-		private float Zoomfactor = 1.1f;
+		public Point Transform6(Point source)
+		{
+			return _transform.Matrix.Transform(source);
+		}
+
+		public float Zoomfactor = 1.1f;
 
 		private void PanAndZoomCanvas_MouseDown(object sender, PointerPressedEventArgs e)
 		{
@@ -479,6 +525,7 @@ namespace WpfPanAndZoom.CustomControls
 					{
 						var b = Transform5(_selectedElement, e.GetPosition(this), e.GetPosition(_selectedElement));
 						Moving(widget.ID, b.X, b.Y);
+						widget.WasMoved = true;
 					}
 
 					if (_borderChilds.Any())
@@ -502,6 +549,7 @@ namespace WpfPanAndZoom.CustomControls
 
 								var c = Transform5(_borderChilds[i], e.GetPosition(this), e.GetPosition(_borderChilds[i]));
 								Moving(widgetC.ID, c.X, c.Y);
+								widgetC.WasMoved = true;
 							}
 						}
 					}
@@ -549,7 +597,10 @@ namespace WpfPanAndZoom.CustomControls
 					var b = Transform5(_selectionItems[i], e.GetPosition(this), e.GetPosition(_selectionItems[i]));
 
 					if (_selectionItems[i] is Widget w)
+					{
 						Moving(w.ID, b.X, b.Y);
+						w.WasMoved = true;
+					}
 				}
 			}
 			else if (!_dragging && props.IsLeftButtonPressed && _selecting)
@@ -593,7 +644,7 @@ namespace WpfPanAndZoom.CustomControls
 			}
 		}
 
-		private void ShowOutside()
+		public void ShowOutside()
 		{
 			foreach (Control child in this.Children)
 			{
@@ -605,7 +656,7 @@ namespace WpfPanAndZoom.CustomControls
 			}
 		}
 
-		private void HideOutside()
+		public void HideOutside()
 		{
 			//Point wndStart = Transform3(new(0, 0));
 			//Point wndEnd = Transform3(new(MainWindow.MainWnd.Bounds.Width - 0, MainWindow.MainWnd.Bounds.Height - 0));
@@ -663,7 +714,7 @@ namespace WpfPanAndZoom.CustomControls
 			}
 		}
 
-		private void SetHiddenShown()
+		public void SetHiddenShown()
 		{
 			Point wndStart = Transform3(new(0, 0));
 			Point wndEnd = Transform3(new(MainWindow.MainWnd.Bounds.Width - 0, MainWindow.MainWnd.Bounds.Height - 0));

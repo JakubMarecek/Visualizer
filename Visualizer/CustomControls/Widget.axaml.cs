@@ -11,6 +11,8 @@ namespace WpfPanAndZoom.CustomControls
 
         public bool DisableMove { set; get; }
 
+        public bool WasMoved { set; get; }
+
         public Widget()
         {
             InitializeComponent();

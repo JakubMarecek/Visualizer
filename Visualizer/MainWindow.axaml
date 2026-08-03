@@ -5,17 +5,25 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:CustomControls="clr-namespace:WpfPanAndZoom.CustomControls"
     xmlns:globalData="using:Visualizer"
-    xmlns:sys="using:System"
-    x:CompileBindings="True"
-    xmlns:local="clr-namespace:Visualizer" mc:Ignorable="d" Title="Visualizer" Loaded="Window_Loaded" 
-		WindowStartupLocation="CenterScreen">
+    xmlns:sys="using:System" x:CompileBindings="True"
+    xmlns:local="clr-namespace:Visualizer" mc:Ignorable="d" Title="Visualizer" Loaded="Window_Loaded" WindowStartupLocation="CenterScreen">
 
-	<Grid>
-		<Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-			<CustomControls:PanAndZoomCanvas x:Name="canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True" />
+    <Grid>
+        <Grid VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+            <CustomControls:PanAndZoomCanvas x:Name="canvas" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="True" />
+
             <Label Content="" Name="debugTxt" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="16" FontWeight="Bold" Foreground="White" Margin="0,0,0,0" />
-		    <TextBox Name="searchTB" HorizontalAlignment="Right" VerticalAlignment="Top" Width="200" KeyUp="searchTB_KeyUp" />
-		    <Button Name="reloadBtn" HorizontalAlignment="Right" VerticalAlignment="Top" Width="200" Margin="0,30,0,0" Content="Reload" Click="reloadBtn_Click" />
-		</Grid>
-	</Grid>
+
+            <TextBox Name="searchTB" HorizontalAlignment="Right" VerticalAlignment="Top" Width="200" KeyUp="searchTB_KeyUp" />
+            <Button Name="reloadBtn" HorizontalAlignment="Right" VerticalAlignment="Top" Width="200" Margin="0,30,0,0" Content="Reload" Click="reloadBtn_Click" />
+
+            <Label Content="View load save" VerticalAlignment="Top" HorizontalAlignment="Right" FontSize="13" Foreground="White" HorizontalContentAlignment="Center" Width="200" Margin="0,75,0,0" />
+            <Button Name="save1ViewBtn" HorizontalAlignment="Right" VerticalAlignment="Top" Width="95" Tag="0" Margin="0,100,105,0" Content="Save 1" Click="saveViewBtn_Click" />
+            <Button Name="load1ViewBtn" HorizontalAlignment="Right" VerticalAlignment="Top" Width="95" Tag="0" Margin="0,100,0,0" Content="Load 1" Click="loadViewBtn_Click" />
+            <Button Name="save2ViewBtn" HorizontalAlignment="Right" VerticalAlignment="Top" Width="95" Tag="1" Margin="0,130,105,0" Content="Save 2" Click="saveViewBtn_Click" />
+            <Button Name="load2ViewBtn" HorizontalAlignment="Right" VerticalAlignment="Top" Width="95" Tag="1" Margin="0,130,0,0" Content="Load 2" Click="loadViewBtn_Click" />
+            <Button Name="save3ViewBtn" HorizontalAlignment="Right" VerticalAlignment="Top" Width="95" Tag="2" Margin="0,160,105,0" Content="Save 3" Click="saveViewBtn_Click" />
+            <Button Name="load3ViewBtn" HorizontalAlignment="Right" VerticalAlignment="Top" Width="95" Tag="2" Margin="0,160,0,0" Content="Load 3" Click="loadViewBtn_Click" />
+        </Grid>
+    </Grid>
 </Window>

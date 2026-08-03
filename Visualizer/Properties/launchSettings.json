@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Visualizer": {
+      "commandName": "Project",
+      "commandLineArgs": "\"D:\\Desktop\\Projects\\LizziesBDs\\source\\raw\\mod\\arman3_lizzies_bds\\quest\\scenes\\lizzies_bds_ads.scene.jsona\""
+    }
+  }
+}
